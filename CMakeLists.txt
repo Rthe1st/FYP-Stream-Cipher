@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8.4)
+project(FYP_Stream_Cipher)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99")
+set(PRODUCTION_SOURCE_FILES main.c grain.c)
+set(UNIT_TEST_SOURCE_FILES unit_tests.c)
+add_executable(FYP_Stream_Cipher ${PRODUCTION_SOURCE_FILES})
+add_executable(FYP_Stream_Cipher_Unit_Test ${UNIT_TEST_SOURCE_FILES})
