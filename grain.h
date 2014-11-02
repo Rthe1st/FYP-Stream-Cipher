@@ -22,5 +22,7 @@ int h(uint64_t lfsr[], uint64_t nlfsr[]);
 
 int preOutput(int hBit, uint64_t lfsr[], uint64_t nlfsr[] );
 
-void initAndClock(int outputSize, uint64_t iv[], uint64_t key[]);
+void initAndClock(int outputBytes[], size_t outputBytesSize, uint64_t iv[], size_t iv_array_size, uint64_t key[], size_t key_array_size);
+
+void printState(uint64_t state[]);
 #endif
