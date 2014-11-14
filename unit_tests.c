@@ -42,7 +42,7 @@ static char * testGrain(){
     //IV :        0123456789abcdef12345678
     //keystream:  f88720c13f46e6a43c07eeed89161a4dd73bd6b8be8b6b116879714ebb630e0a4c12f0399412982c
     //broken for this test, no idea why
-    /*key[0] = (uint64_t)0x123456789abcdef0;
+   /* key[0] = (uint64_t)0x123456789abcdef0;
     key[1] = (uint64_t)0x0123456789abcdef;
     iv[0] = (uint64_t) 0x89abcdef12345678;
     iv[1] = (uint64_t)0x01234567;
@@ -267,13 +267,7 @@ static char * testEfficientPreOutput(){
     return 0;
 }
 
-static char * testycals(){
-    //radnom test here yo
-    return 0;
-}
-
 static char * all_tests() {
-    mu_run_test(testycals);
     mu_run_test(testLinearFeedback);
     mu_run_test(testEfficientLinearFeedback);
     mu_run_test(testEfficientNonLinearFeedback);

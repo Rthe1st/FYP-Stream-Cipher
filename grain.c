@@ -1,5 +1,6 @@
 #include "grain.h"
 #include<stdio.h>
+#include <stdlib.h>
 #include "useful.h"
 
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
@@ -60,9 +61,6 @@ int nonLinearFeeback(uint64_t nlfsr[], int lastLfsrBit) {
             ^ ((power(2, 88-64) & nlfsr[1]) && (power(2, 92-64) & nlfsr[1]) && (power(2, 93-64) & nlfsr[1]) && (power(2, 95-64) & nlfsr[1]))
             ^ ((power(2, 22) & nlfsr[0]) && (power(2, 24) & nlfsr[0]) && (power(2, 25) & nlfsr[0]))
             ^ ((power(2, 70-64) & nlfsr[1]) && (power(2, 78-64) & nlfsr[1]) && (power(2, 82-64) & nlfsr[1]));
-    //debug_print("last lfsr bit: %d\n", lastLfsrBit);
-    //debug_print("linear bit: %d\n", linearBit);
-    //debug_print("nonlinear bit: %d\n", nonLinearBit);
     return linearBit ^ lastLfsrBit ^ nonLinearBit;
 }
 
@@ -102,28 +100,32 @@ void printState(uint64_t state[]){
     debug_print("\n");
 }
 
-/*iv[] shoudl be given as 32 0's followed by the actual iv*/
-void initAndClock(int output[], size_t outputSize, uint64_t iv[], size_t iv_array_size, uint64_t key[], size_t key_array_size){
-    uint64_t ivMask[2] = {0, (uint64_t)(power(2, 31)-1) << 32};
-    uint64_t lfsr[] = {iv[0], iv[1] | ivMask[1]};
-    uint64_t nlfsr[] = {key[0], key[1]};
-    State state = {lfsr, nlfsr};
-    State* state_p = &state;
+State setupGrain(uint64_t iv[], uint64_t key[]){
+    iv[1] |= 0x7fffffff00000000;
+    State state = {iv, key};
     debug_print("initial state: \n");
-    debug_print("lfsr state:\n");printState(lfsr);
-    debug_print("nlfsr state:\n");printState(nlfsr);
+    debug_print("lfsr state:\n");
+    printState(state.lfsr);
+    debug_print("nlfsr state:\n");
+    printState(state.nlfsr);
     debug_print("begin clocking\n");
     for(int i = 0; i < 256; i++) {
         debug_print("clock number %d\n", i);
-        initialisation_clock(state_p);
+        initialisation_clock(&state);
     }
+    return state;
+}
+
+/*iv[] shoudl be given as 32 0's followed by the actual iv*/
+void initAndClock(int output[], size_t outputSize, uint64_t iv[], size_t iv_array_size, uint64_t key[], size_t key_array_size){
+    State state = setupGrain(iv, key);
     debug_print("initilisation done\n");
     int outputIndex = 0;
     for(int i=0; i< outputSize;i++)
         output[i] = 0;
     for(int i = 0; i < outputSize; i++) {
         for(int bitNo=3; bitNo>=0; bitNo--){
-            int keyBit = production_clock(state_p);
+            int keyBit = production_clock(&state);
             debug_print("clock number %d\n", (i*4)+bitNo);
             debug_print("keyBitNo: %d\n", bitNo);
             output[outputIndex] =  output[outputIndex] | (power(2, bitNo) * keyBit);
