@@ -1,9 +1,10 @@
 #include<stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 #include "grain.h"
 #include "useful.h"
-#include <math.h>
-#include <stdlib.h>
+#include "encoding.h"
 
 //expects arguments to be grain key iv streamLength
 //writes plain keystream to file
@@ -16,6 +17,23 @@ void runGrain(int argc, char *argv[]) {
     }
     char *key = argv[2];
     char *iv = argv[3];
+    char *fileOutPath = 0;
+    char* fileInPath = 0;
+    int binary = 1;//print in binary by default
+    int encrypt = 1;//by default encrypt
+    for(int i=4; i < argc; i++){
+        if(!strcmp(argv[i],"-fo")) {
+            if (!(argc <= i + 1 || argv[i+1][0] == '-')) {
+                fileOutPath = argv[i + 1];
+            }
+        }else if(!strcmp(argv[i],"-fi")) {
+            if (!(argc <= i + 1 || argv[i+1][0] == '-')) {
+                fileInPath = argv[i + 1];
+            }
+        }else if(!strcmp(argv[i],"-d")){
+            encrypt = 0;
+        }
+    }
     int keyLength = 0;
     while(key[keyLength] != '\0')
         keyLength++;
@@ -30,7 +48,6 @@ void runGrain(int argc, char *argv[]) {
         printf("iv must be %d characters long (128bits), it's %d long", 24, ivLength);
         return;
     }
-    //state cant be declared in setup function because shift register array will leave dangling pointers
     uint8_t bin[32];
     hexStringToBin(bin, key, 32);
     uint64_t bin_key[2] = {0};
@@ -45,15 +62,36 @@ void runGrain(int argc, char *argv[]) {
         bin_key[index] = bin_key[index] << 4 | bin[i];
     }
     State state = setupGrain(bin_iv, bin_key);
-    int streamLength = atoi(argv[4]);
-    //file handling
-    FILE *fp = fopen("C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\test.txt", "w+");//lol unhardcode
-    for (int i = 0; i < streamLength; i++) {
-        fputc((char) (((int) '0') + production_clock(&state)), fp);
+    //file io defaults
+    if(encrypt == 1){
+        if(!fileInPath) {
+            fileInPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\plain.txt";
+        }
+        if(!fileOutPath) {
+            fileOutPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\cipher.txt";
+        }
+    }else{
+        if(!fileInPath)
+            fileInPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\cipher.txt";
+        if(!fileOutPath)
+            fileOutPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\plain.txt";
     }
-    fclose(fp);
+    FILE* inFp = fopen(fileInPath, "r");
+    FILE* outFp = fopen(fileOutPath, "w+");
+    if(encrypt == 1 && binary == 1) {
+        printf("encrypting bin");
+        encryptBinary(state, inFp, outFp);
+    }/*else if(encrypt == 1 && binary == 0){
+        encryptHex(streamLength, state, plainText, fp);
+    } */else if(encrypt == 0 && binary == 1){
+        printf("decrypting bin");
+        decryptBinary(state, inFp, outFp);
+    } /*else if(encrypt == 0 && binary == 0){
+        decryptHex(streamLength, state, plainText, fp);
+    }*/
+    fclose(inFp);
+    fclose(outFp);
 }
-
 
 int main(int argc, char *argv[]) {
     if (argc == 1) {

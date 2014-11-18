@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include "minunit.h"
-#include "grain.h"
-#include "useful.h"
-#include "efficient_grain.h"
 #include <time.h>
 #include <stdlib.h>
 #include <sec_api/string_s.h>
 #include <inttypes.h>
+#include "minunit.h"
+#include "grain.h"
+#include "useful.h"
+#include "efficient_grain.h"
 
 int tests_run = 0;
 
