@@ -31,32 +31,38 @@ int hexToBin(char hex){
         default: return -1;
     }
 };
-/*
+
 char binToHex(int bin){
     switch(bin){
-        case 0000: return '0';
-        case 0001: return '1';
-        case 0010: return '2';
-        case 0011: return '3';
-        case 0100: return '4';
-        case 0101: return '5';
-        case 0110: return '6';
-        case 0111: return '7';
-        case 1000: return '8';
-        case 1001: return '9';
-        case 1010: return 'a';
-        case 1011: return 'b';
-        case 1100: return 'c';
-        case 1101: return 'd';
-        case 1110: return 'e';
-        case 1111: return 'f';
+        case 0: return '0';
+        case 1: return '1';
+        case 2: return '2';
+        case 3: return '3';
+        case 4: return '4';
+        case 5: return '5';
+        case 6: return '6';
+        case 7: return '7';
+        case 8: return '8';
+        case 9: return '9';
+        case 10: return 'a';
+        case 11: return 'b';
+        case 12: return 'c';
+        case 13: return 'd';
+        case 14: return 'e';
+        case 15: return 'f';
         default: return 'z';
     }
-};*/
+};
 
 void hexStringToBin(uint8_t* bin, char* hex, size_t size){
     for(size_t i=0; i<size; i++){
         bin[i] = (uint8_t)hexToBin(hex[i]);
+    }
+}
+
+void binStringToHex(char* hex, uint8_t* bin, size_t size){
+    for(size_t i=0; i<size; i++){
+        hex[i] = (uint8_t)binToHex(bin[i]);
     }
 }
 
