@@ -33,7 +33,7 @@ static char * testGrain(){
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
     char rawExpectedOutput[] = "c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7";
     uint8_t parsedExpectedOutput[sizeof rawExpectedOutput/sizeof rawExpectedOutput[0]];
-    hexStringToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput/sizeof rawExpectedOutput[0]);
+    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
     uint64_t key[2] = {(uint64_t)0, (uint64_t)0};
     uint64_t iv[2] = {(uint64_t) 0, (uint64_t)0};
     mu_assert("grain error, keyStream != expectedOutput, vector 1", testVector(parsedExpectedOutput, key, iv, 0));
@@ -56,7 +56,7 @@ static char * testEfficientGrain(){
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
     char rawExpectedOutput[] = "c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7";
     uint8_t parsedExpectedOutput[sizeof rawExpectedOutput/sizeof rawExpectedOutput[0]];
-    hexStringToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput/sizeof rawExpectedOutput[0]);
+    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
     uint64_t key[2] = {(uint64_t)0, (uint64_t)0};
     uint64_t iv[2] = {(uint64_t) 0, (uint64_t)0};
     mu_assert("efficientGrain error, keyStream != expectedOutput, vector 1", testVector(parsedExpectedOutput, key, iv, 1));

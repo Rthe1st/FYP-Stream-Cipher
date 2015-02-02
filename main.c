@@ -49,13 +49,13 @@ void runGrain(int argc, char *argv[]) {
         return;
     }
     uint8_t bin[32];
-    hexStringToBin(bin, key, 32);
+    hexArrayToBin(bin, key, 32);
     uint64_t bin_key[2] = {0};
     for(int i=0; i<=32; i++){
         int index = 1-(i%(64/4));
         bin_key[index] = bin_key[index] << 4 | bin[i];
     }
-    hexStringToBin(bin, iv, 24);
+    hexArrayToBin(bin, iv, 24);
     uint64_t bin_iv[2] = {0};
     for(int i=0; i<=24; i++){
         int index = 1-(i%(64/4));
