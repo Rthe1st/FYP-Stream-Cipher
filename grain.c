@@ -1,7 +1,22 @@
 #include "grain.h"
 #include<stdio.h>
-#include <stdlib.h>
 #include "useful.h"
+
+/*void set_bit(uint64_t *bits, int bit_value, int bit_index){
+    if(bit_index < 64){
+        bits[0] = bits[0] ^ (bit_value * power(2, bit_index));
+    }else{
+        bits[1] = bits[1] ^ (bit_value * power(2, bit_index-64));
+    }
+}
+
+int get_bit(uint64_t *bits, int bit_index){
+    if(bit_index < 64){
+        return bits[0] & power(2, bit_index);
+    }else{
+        return bits[1] & power(2, bit_index-64);
+    }
+}*/
 
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
 //register[1] is 2^128^....2^64
@@ -100,7 +115,7 @@ void printState(uint64_t state[]){
     debug_print("\n");
 }
 
-State setupGrain(uint64_t iv[], uint64_t key[]){
+State setupGrain(uint64_t iv[], uint64_t key[], int clock_number) {
     iv[1] |= 0x7fffffff00000000;
     State state = {iv, key};
     debug_print("initial state: \n");
@@ -109,7 +124,7 @@ State setupGrain(uint64_t iv[], uint64_t key[]){
     debug_print("nlfsr state:\n");
     printState(state.nlfsr);
     debug_print("begin clocking\n");
-    for(int i = 0; i < 256; i++) {
+    for(int i = 0; i < clock_number; i++) {
         debug_print("clock number %d\n", i);
         initialisation_clock(&state);
     }
@@ -118,7 +133,7 @@ State setupGrain(uint64_t iv[], uint64_t key[]){
 
 /*iv[] shoudl be given as 32 0's followed by the actual iv*/
 void initAndClock(int output[], size_t outputSize, uint64_t iv[], size_t iv_array_size, uint64_t key[], size_t key_array_size){
-    State state = setupGrain(iv, key);
+    State state = setupGrain(iv, key, 256);
     debug_print("initilisation done\n");
     int outputIndex = 0;
     for(int i=0; i< outputSize;i++)
