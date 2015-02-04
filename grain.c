@@ -2,21 +2,37 @@
 #include<stdio.h>
 #include "useful.h"
 
-/*void set_bit(uint64_t *bits, int bit_value, int bit_index){
-    if(bit_index < 64){
-        bits[0] = bits[0] ^ (bit_value * power(2, bit_index));
+#include <inttypes.h>
+void set_bit(uint64_t *bits, int bit_value, int bit_index){
+    int bits_element;
+    debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit value %d bit index %d\n", bits[0], bits[1], bit_value, bit_index);
+    if(bit_index >= 64){
+        bits_element = 1;
     }else{
-        bits[1] = bits[1] ^ (bit_value * power(2, bit_index-64));
+        bits_element = 0;
     }
+    bit_index = bit_index%64;
+    int is_one = !!(bits[bits_element] & power(2, bit_index));
+    debug_print("isone %d\n", is_one);
+    if(!is_one && (bit_value == 1)){
+        bits[bits_element] += power(2, bit_index);
+    }else if(is_one && (bit_value == 0)){
+        bits[bits_element] -= power(2, bit_index);
+    }
+    debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64"\n", bits[0], bits[1]);
 }
 
 int get_bit(uint64_t *bits, int bit_index){
+    debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit index %d\n", bits[0], bits[1], bit_index);
+    uint64_t bit;
     if(bit_index < 64){
-        return bits[0] & power(2, bit_index);
+        bit =  bits[0] & power(2, bit_index);
     }else{
-        return bits[1] & power(2, bit_index-64);
+        bit = bits[1] & power(2, bit_index%64);
     }
-}*/
+    debug_print("return bit %d\n", !!bit);
+    return !!bit;
+}
 
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
 //register[1] is 2^128^....2^64
