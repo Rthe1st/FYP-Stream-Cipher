@@ -3,14 +3,11 @@
 #include "useful.h"
 
 #include <inttypes.h>
+#include <stdlib.h>
+
 void set_bit(uint64_t *bits, int bit_value, int bit_index){
-    int bits_element;
+    int bits_element = bit_index/64;
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit value %d bit index %d\n", bits[0], bits[1], bit_value, bit_index);
-    if(bit_index >= 64){
-        bits_element = 1;
-    }else{
-        bits_element = 0;
-    }
     bit_index = bit_index%64;
     int is_one = !!(bits[bits_element] & power(2, bit_index));
     debug_print("isone %d\n", is_one);
@@ -60,7 +57,7 @@ int production_clock(State* state) {
     int hBit = h(state->lfsr, state->nlfsr);
     int keyBit = preOutput(hBit, state->lfsr, state->nlfsr);
     int linearFeedBack = linearFeedback(state->lfsr);
-    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, state->lfsr[0] & 1);
+    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, (int)(state->lfsr[0] & 1));
     updateSRState(state->lfsr, linearFeedBack);
     updateSRState(state->nlfsr, nonLinearFeedback);
     debug_print("keybit: %d", keyBit);
@@ -132,8 +129,12 @@ void printState(uint64_t state[]){
 }
 
 State setupGrain(uint64_t iv[], uint64_t key[], int clock_number) {
-    iv[1] |= 0x7fffffff00000000;
-    State state = {iv, key};
+    uint64_t* iv_copy = malloc(2*sizeof(uint64_t));
+    iv_copy[0] = iv[0]; iv_copy[1] = iv[1];
+    uint64_t *key_copy = malloc(2*sizeof(uint64_t));
+    key_copy[0] = key[0]; key_copy[1] = key[1];
+    iv_copy[1] |= 0x7fffffff00000000;
+    State state = {iv_copy, key_copy};
     debug_print("initial state: \n");
     debug_print("lfsr state:\n");
     printState(state.lfsr);
@@ -147,8 +148,8 @@ State setupGrain(uint64_t iv[], uint64_t key[], int clock_number) {
     return state;
 }
 
-/*iv[] shoudl be given as 32 0's followed by the actual iv*/
-void initAndClock(int output[], size_t outputSize, uint64_t iv[], size_t iv_array_size, uint64_t key[], size_t key_array_size){
+/*iv[] should be given as 32 0's followed by the actual iv*/
+void initAndClock(int output[], size_t outputSize, uint64_t iv[], uint64_t key[]){
     State state = setupGrain(iv, key, 256);
     debug_print("initilisation done\n");
     int outputIndex = 0;
@@ -159,7 +160,7 @@ void initAndClock(int output[], size_t outputSize, uint64_t iv[], size_t iv_arra
             int keyBit = production_clock(&state);
             debug_print("clock number %d\n", (i*4)+bitNo);
             debug_print("keyBitNo: %d\n", bitNo);
-            output[outputIndex] =  output[outputIndex] | (power(2, bitNo) * keyBit);
+            output[outputIndex] =  output[outputIndex] | (int)(power(2, bitNo) * keyBit);
         }
         outputIndex++;
     }
