@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <dxgi.h>
 
 #include "useful.h"
 #include "grain.h"
@@ -151,9 +152,8 @@ void initAndClock(int *const output, const size_t outputSize, const uint64_t *co
     State state = setupGrain(iv, key, INIT_CLOCKS);
     debug_print("initilisation done\n");
     int outputIndex = 0;
-    for(int i=0; i< outputSize;i++)
-        output[i] = 0;
     for(int i = 0; i < outputSize; i++) {
+        output[i] = 0;
         for(int bitNo=3; bitNo>=0; bitNo--){
             int keyBit = production_clock(&state);
             debug_print("clock number %d\n", (i*4)+bitNo);
