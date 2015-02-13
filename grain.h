@@ -1,41 +1,49 @@
 #ifndef GRAIN_H
 #define GRAIN_H
+
 #include <stdint.h>
 
 typedef struct State{
-    uint64_t* lfsr;//make sure these are unsigned
+    uint64_t* lfsr;
     uint64_t* nlfsr;
 } State;
 
-static const int key_length = 128;
+extern const int KEY_LENGTH;
 
-static const int iv_length = 128;
+extern const int IV_LENGTH;
 
-static const int iv_init_length = 96;
+extern const int LFSR_LENGTH;
 
-uint64_t power(int a, int b);
+extern const int NFSR_LENGTH;
 
-void set_bit(uint64_t *bits, int bit_value, int bit_index);
+extern const int INT64_IN_KEY;//KEY_LENGTH/64
 
-int get_bit(uint64_t *bits, int bit_index);
+extern const int INT64_IN_IV;//IV_LENGTH/64
+
+extern const int INIT_CLOCKS;
+
+void set_bit(uint64_t * const bits, const int bit_value, int bit_index);
+
+int get_bit(const uint64_t *const bits, const int bit_index);
 
 void initialisation_clock(State* state);
 
 int production_clock(State* state);
 
-void updateSRState(uint64_t shiftRegister[], int newBit);
+void updateSRState(uint64_t *shiftRegister, int newBit);
 
-int nonLinearFeeback(uint64_t nlfsr[], int lastLfsrBit);
+int nonLinearFeeback(const uint64_t * const nlfsr, const int lastLfsrBit);
 
-int linearFeedback(uint64_t lfsr[]);
+int linearFeedback(const uint64_t * const lfsr);
 
-int h(uint64_t lfsr[], uint64_t nlfsr[]);
+int h(const uint64_t * const lfsr, const uint64_t * const nlfsr);
 
-int preOutput(int hBit, uint64_t lfsr[], uint64_t nlfsr[] );
+int preOutput(const int hBit, const uint64_t * const lfsr, const uint64_t * const nlfsr);
 
-void initAndClock(int outputBytes[], size_t outputBytesSize, uint64_t iv[], uint64_t key[]);
+void initAndClock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key);
 
-void printState(uint64_t state[]);
+void printState(const uint64_t * const state);
 
-State setupGrain(uint64_t iv[], uint64_t key[], int clock_number);
+State setupGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number);
+
 #endif

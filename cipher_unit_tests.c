@@ -97,7 +97,7 @@ static int testVector(uint8_t *expectedOutput, uint64_t *key, uint64_t *iv, int 
     if (efficient)
         efficientInitAndClock(keyStream, outputSize, key, 96, iv, 128);
     else
-        initAndClock(keyStream, outputSize, key, 96, iv, 128);
+        initAndClock(keyStream, outputSize, key, iv);
     printkeyStream(keyStream, outputSize);
     for (int i = 0; i < (sizeof keyStream / sizeof keyStream[0]); i++) {
         if (expectedOutput[i] != keyStream[i]) {
@@ -160,7 +160,7 @@ static char *testEfficientGrain() {
     int numberOfRuns = 100;
     clock_t start = clock();
     for (int i = 0; i < numberOfRuns; i++) {
-        initAndClock(keyStream, outputSize, key, 96, iv, 128);
+        initAndClock(keyStream, outputSize, key, iv);
         grainTime += clock() - start;
     }
     start = clock();

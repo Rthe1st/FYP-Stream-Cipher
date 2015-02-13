@@ -1,15 +1,30 @@
-#include "grain.h"
 #include<stdio.h>
-#include "useful.h"
-
 #include <inttypes.h>
 #include <stdlib.h>
 
-void set_bit(uint64_t *bits, int bit_value, int bit_index){
-    int bits_element = bit_index/64;
+#include "useful.h"
+#include "grain.h"
+
+const int KEY_LENGTH = 128;
+
+const int IV_LENGTH = 96;
+
+const int LFSR_LENGTH = 128;
+
+const int NFSR_LENGTH = 128;
+
+const int INT64_IN_KEY = 2;//KEY_LENGTH/64
+
+const int INT64_IN_IV = 2;//IV_LENGTH/64
+
+const int INIT_CLOCKS = 256;
+
+
+void set_bit(uint64_t *bits, const int bit_value, int bit_index){
+    const int bits_element = bit_index/64;
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit value %d bit index %d\n", bits[0], bits[1], bit_value, bit_index);
     bit_index = bit_index%64;
-    int is_one = !!(bits[bits_element] & power(2, bit_index));
+    const int is_one = !!(bits[bits_element] & power(2, bit_index));
     debug_print("isone %d\n", is_one);
     if(!is_one && (bit_value == 1)){
         bits[bits_element] += power(2, bit_index);
@@ -19,7 +34,7 @@ void set_bit(uint64_t *bits, int bit_value, int bit_index){
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64"\n", bits[0], bits[1]);
 }
 
-int get_bit(uint64_t *bits, int bit_index){
+int get_bit(const uint64_t *const bits, const int bit_index){
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit index %d\n", bits[0], bits[1], bit_index);
     uint64_t bit;
     if(bit_index < 64){
@@ -34,7 +49,7 @@ int get_bit(uint64_t *bits, int bit_index){
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
 //register[1] is 2^128^....2^64
 
-void initialisation_clock(State* state){
+void initialisation_clock(State * const state){
     int hBit = h(state->lfsr, state->nlfsr);
     debug_print("hbit: %d\n", hBit);
     int keyBit = preOutput(hBit, state->lfsr, state->nlfsr);
@@ -42,7 +57,7 @@ void initialisation_clock(State* state){
     int linearFeedBack = linearFeedback(state->lfsr);
     debug_print("linear feedback bit: %d\n", linearFeedBack);
     linearFeedBack = keyBit ^ linearFeedBack;
-    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, state->lfsr[0] & 1);
+    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0));
     debug_print("non linear feedback bit: %d\n", nonLinearFeedback);
     nonLinearFeedback = keyBit ^ nonLinearFeedback;
     updateSRState(state->lfsr, linearFeedBack);
@@ -53,11 +68,11 @@ void initialisation_clock(State* state){
     printState(state->nlfsr);
 }
 
-int production_clock(State* state) {
+int production_clock(State * const state) {
     int hBit = h(state->lfsr, state->nlfsr);
     int keyBit = preOutput(hBit, state->lfsr, state->nlfsr);
     int linearFeedBack = linearFeedback(state->lfsr);
-    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, (int)(state->lfsr[0] & 1));
+    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0));
     updateSRState(state->lfsr, linearFeedBack);
     updateSRState(state->nlfsr, nonLinearFeedback);
     debug_print("keybit: %d", keyBit);
@@ -68,59 +83,44 @@ int production_clock(State* state) {
     return keyBit;
 }
 
-void updateSRState(uint64_t shiftRegister[], int newBit){
-    shiftRegister[0] = (shiftRegister[0] >> 1) | (power(2, 63) * (shiftRegister[1] & 1));
+void updateSRState(uint64_t *shiftRegister, const int newBit){
+    shiftRegister[0] = (shiftRegister[0] >> 1) | (power(2, 63) * get_bit(shiftRegister, 64));
     shiftRegister[1] = (shiftRegister[1] >> 1) | (power(2, 63) * newBit);
 }
 
-int nonLinearFeeback(uint64_t nlfsr[], int lastLfsrBit) {
-    int linearBit = (int)(!!(1 & nlfsr[0])
-            ^ !!(power(2, 26) & nlfsr[0])
-            ^ !!(power(2, 56) & nlfsr[0])
-            ^ !!(power(2, 91-64) & nlfsr[1])
-            ^ !!(power(2, 96-64) & nlfsr[1]));
-    int nonLinearBit = ((power(2, 3) & nlfsr[0]) && (power(2, 67-64) & nlfsr[1]))
-            ^ ((power(2, 11) & nlfsr[0]) && (power(2, 13) & nlfsr[0]))
-            ^ ((power(2, 17) & nlfsr[0]) && (power(2, 18) & nlfsr[0]))
-            ^ ((power(2, 27) & nlfsr[0]) && (power(2, 59) & nlfsr[0]))
-            ^ ((power(2, 40) & nlfsr[0]) && (power(2, 48) & nlfsr[0]))
-            ^ ((power(2, 61) & nlfsr[0]) && (power(2, 65-64) & nlfsr[1]))
-            ^ ((power(2, 68-64) & nlfsr[1]) && (power(2, 84-64) & nlfsr[1]))
-            ^ ((power(2, 88-64) & nlfsr[1]) && (power(2, 92-64) & nlfsr[1]) && (power(2, 93-64) & nlfsr[1]) && (power(2, 95-64) & nlfsr[1]))
-            ^ ((power(2, 22) & nlfsr[0]) && (power(2, 24) & nlfsr[0]) && (power(2, 25) & nlfsr[0]))
-            ^ ((power(2, 70-64) & nlfsr[1]) && (power(2, 78-64) & nlfsr[1]) && (power(2, 82-64) & nlfsr[1]));
-    return linearBit ^ lastLfsrBit ^ nonLinearBit;
+int nonLinearFeeback(const uint64_t * const nlfsr, const int lastLfsrBit) {
+    int linearBit = get_bit(nlfsr, 0) ^ get_bit(nlfsr, 26) ^ get_bit(nlfsr, 56) ^ get_bit(nlfsr, 91) ^ get_bit(nlfsr, 96);
+    int nonLinearBit = (get_bit(nlfsr, 3) && get_bit(nlfsr, 67))
+            ^ (get_bit(nlfsr, 11) && get_bit(nlfsr, 13))
+            ^ (get_bit(nlfsr, 17) && get_bit(nlfsr, 18))
+            ^ (get_bit(nlfsr, 27) && get_bit(nlfsr, 59))
+            ^ (get_bit(nlfsr, 40) && get_bit(nlfsr, 48))
+            ^ (get_bit(nlfsr, 61) && get_bit(nlfsr, 65))
+            ^ (get_bit(nlfsr, 68) && get_bit(nlfsr, 84))
+            ^ (get_bit(nlfsr, 88) && get_bit(nlfsr, 92) && get_bit(nlfsr, 93) && get_bit(nlfsr, 95))
+            ^ (get_bit(nlfsr, 22) && get_bit(nlfsr, 24) && get_bit(nlfsr, 25))
+            ^ (get_bit(nlfsr, 70) && get_bit(nlfsr, 78) && get_bit(nlfsr, 82));
+    return (linearBit ^ lastLfsrBit ^ nonLinearBit);
 }
 
-int linearFeedback(uint64_t lfsr[]){
-    return (int)(!!(power(2, 0) & lfsr[0])
-            ^ !!(power(2, 7) & lfsr[0])
-            ^ !!(power(2, 38) & lfsr[0])
-            ^ !!(power(2, 70-64) & lfsr[1])
-            ^ !!(power(2, 81-64) & lfsr[1])
-            ^ !!(power(2, 96-64) & lfsr[1]));
+int linearFeedback(const uint64_t * const lfsr){
+    return get_bit(lfsr, 0) ^ get_bit(lfsr, 7) ^ get_bit(lfsr, 38) ^ get_bit(lfsr, 70) ^ get_bit(lfsr, 81) ^ get_bit(lfsr, 96);
 }
 
-int h(uint64_t lfsr[], uint64_t nlfsr[]){
-    return (int)(((power(2, 12) & nlfsr[0]) && (power(2, 8) & lfsr[0]))
-            ^ ((power(2, 13) & lfsr[0]) && (power(2, 20) & lfsr[0]))
-            ^ ((power(2, 95-64) & nlfsr[1]) && (power(2, 42) & lfsr[0]))
-            ^ ((power(2, 60) & lfsr[0]) && (power(2, 79-64) & lfsr[1]))
-            ^ ((power(2, 12) & nlfsr[0]) && (power(2, 95-64) & nlfsr[1]) && (power(2, 94-64) & lfsr[1])));
+int h(const uint64_t * const lfsr, const uint64_t * const nlfsr){
+    return (get_bit(nlfsr, 12) && get_bit(lfsr, 8))
+            ^ (get_bit(lfsr, 13) && get_bit(lfsr, 20))
+            ^ (get_bit(nlfsr, 95) && get_bit(lfsr, 42))
+            ^ (get_bit(lfsr, 60) && get_bit(lfsr, 79))
+            ^ (get_bit(nlfsr, 12) && get_bit(nlfsr, 95) && get_bit(lfsr, 94));
 }
 
-int preOutput(int hBit, uint64_t lfsr[], uint64_t nlfsr[] ){
-    return (int)(!!hBit ^ !!(power(2, 93-64) & lfsr[1])
-            ^ !!(power(2, 2) & nlfsr[0])
-            ^ !!(power(2, 15) & nlfsr[0])
-            ^ !!(power(2, 36) & nlfsr[0])
-            ^ !!(power(2, 45) & nlfsr[0])
-            ^ !!(power(2, 64-64) & nlfsr[1])
-            ^ !!(power(2, 73-64) & nlfsr[1])
-            ^ !!(power(2, 89-64) & nlfsr[1]));
+int preOutput(const int hBit, const uint64_t * const lfsr, const uint64_t * const nlfsr){
+    return hBit ^ get_bit(lfsr, 93) ^ get_bit(nlfsr, 2) ^ get_bit(nlfsr, 15) ^ get_bit(nlfsr, 36)
+            ^ get_bit(nlfsr, 45) ^ get_bit(nlfsr, 64) ^ get_bit(nlfsr, 73) ^ get_bit(nlfsr, 89);
 }
 
-void printState(uint64_t state[]){
+void printState(const uint64_t * const state){
     for(int g = 0; g < 2; g++) {
         uint64_t curState = state[g];
         printBits(8, &curState);
@@ -128,18 +128,16 @@ void printState(uint64_t state[]){
     debug_print("\n");
 }
 
-State setupGrain(uint64_t iv[], uint64_t key[], int clock_number) {
+State setupGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number) {
+    const uint64_t DEFAULT_END_IV_BITS = 0x7fffffff00000000;
     uint64_t* iv_copy = malloc(2*sizeof(uint64_t));
-    iv_copy[0] = iv[0]; iv_copy[1] = iv[1];
+    iv_copy[0] = iv[0]; iv_copy[1] = iv[1]|DEFAULT_END_IV_BITS;
     uint64_t *key_copy = malloc(2*sizeof(uint64_t));
     key_copy[0] = key[0]; key_copy[1] = key[1];
-    iv_copy[1] |= 0x7fffffff00000000;
     State state = {iv_copy, key_copy};
     debug_print("initial state: \n");
-    debug_print("lfsr state:\n");
-    printState(state.lfsr);
-    debug_print("nlfsr state:\n");
-    printState(state.nlfsr);
+    debug_print("lfsr state:\n"); printState(state.lfsr);
+    debug_print("nlfsr state:\n"); printState(state.nlfsr);
     debug_print("begin clocking\n");
     for(int i = 0; i < clock_number; i++) {
         debug_print("clock number %d\n", i);
@@ -149,8 +147,8 @@ State setupGrain(uint64_t iv[], uint64_t key[], int clock_number) {
 }
 
 /*iv[] should be given as 32 0's followed by the actual iv*/
-void initAndClock(int output[], size_t outputSize, uint64_t iv[], uint64_t key[]){
-    State state = setupGrain(iv, key, 256);
+void initAndClock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key){
+    State state = setupGrain(iv, key, INIT_CLOCKS);
     debug_print("initilisation done\n");
     int outputIndex = 0;
     for(int i=0; i< outputSize;i++)
