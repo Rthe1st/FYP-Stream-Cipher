@@ -143,7 +143,6 @@ State setupGrain(const uint64_t * const iv, const uint64_t * const key, const in
     return state;
 }
 
-/*iv[] should be given as 32 0's followed by the actual iv*/
 void initAndClock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key){
     State state = setupGrain(iv, key, INIT_CLOCKS);
     debug_print("initilisation done\n");

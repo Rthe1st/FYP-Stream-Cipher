@@ -2,6 +2,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <inttypes.h>
+
 #include "minunit.h"
 #include "grain.h"
 #include "useful.h"
@@ -92,10 +93,10 @@ static char *testGetBit() {
 }
 
 static int testVector(uint8_t *expectedOutput, uint64_t *key, uint64_t *iv, int efficient) {
-    int outputSize = sizeof expectedOutput / sizeof expectedOutput[0];
+    size_t outputSize = sizeof expectedOutput / sizeof expectedOutput[0];
     int keyStream[outputSize];
     if (efficient)
-        efficientInitAndClock(keyStream, outputSize, key, 96, iv, 128);
+        efficientInitAndClock(keyStream, outputSize, key, iv);
     else
         initAndClock(keyStream, outputSize, key, iv);
     printkeyStream(keyStream, outputSize);
@@ -150,32 +151,33 @@ static char *testEfficientGrain() {
     iv[0] = (uint64_t) 0x89abcdef12345678;
     iv[1] = (uint64_t)0x01234567;
     mu_assert("efficientGrain error, keyStream != expectedOutput, vector 2", testVector(parsedExpectedOutput, key, iv, 1));*/
-    key[0] = (((uint64_t) rand()) << 32) | rand();
-    key[1] = (((uint64_t) rand()) << 32) | rand();
-    iv[0] = (((uint64_t) rand()) << 32) | rand();
-    iv[1] = (((uint64_t) rand()) << 32) | rand();
-    int outputSize = 2000;
-    int keyStream[outputSize];
-    clock_t eGrainTime = 0, grainTime = 0;
-    int numberOfRuns = 100;
-    clock_t start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        initAndClock(keyStream, outputSize, key, iv);
-        grainTime += clock() - start;
+    size_t output_size = 200;
+    clock_t e_grain_time = 0, grain_time = 0;
+    for (int i = 0; i < 1000; i++) {
+        key[0] = (((uint64_t) rand()) << 32) | rand();
+        key[1] = (((uint64_t) rand()) << 32) | rand();
+        iv[0] = (((uint64_t) rand()) << 32) | rand();
+        iv[1] = (((uint64_t) rand()) << 32) | rand();
+        clock_t non_efficient_start = clock();
+        int result_bits[output_size];
+        initAndClock(result_bits, output_size, key, iv);
+        grain_time += clock() - non_efficient_start;
+        clock_t efficient_start = clock();
+        int e_result_bits[output_size];
+        efficientInitAndClock(e_result_bits, output_size, key, iv);
+        e_grain_time += clock() - efficient_start;
+        for(int g=0; g < output_size; g++){
+            mu_assert("grain != efficient grain", result_bits[i] == e_result_bits[i]);
+        }
     }
-    start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        efficientInitAndClock(keyStream, outputSize, key, 96, iv, 128);
-        eGrainTime += clock() - start;
-    }
-    printf("total EfficientGrainTime %d\n", (int) eGrainTime);
-    printf("totalGrainTime %d\n", (int) grainTime);
-    mu_assert("total efficientGrain > total grain", eGrainTime < grainTime);
+    printf("total EfficientGrainTime %d\n", (int) e_grain_time);
+    printf("totalGrainTime %d\n", (int) grain_time);
+    mu_assert("total efficientGrain > total grain", e_grain_time < grain_time);
     return 0;
 }
 
 static char *testLinearFeedback() {
-    uint64_t lfsr[2] = {0};
+    uint64_t lfsr[2] = {0, 0};
     mu_assert("linear feedback failed for all 0", linearFeedback(lfsr) == 0);
     lfsr[0] = 0xffffffffffffffff;
     lfsr[1] = 0xffffffffffffffff;
@@ -202,59 +204,61 @@ static char *testEfficientLinearFeedback() {
     lfsr[1] = 0xffffffffffffffff;
     printf("testing for lfsr[0] %"PRIu64" lfsr[1] %"PRIu64"\n", lfsr[0], lfsr[1]);
     mu_assert("linearFeedback != efficientLinearFeedback for ", linearFeedback(lfsr) == efficientLinearFeedback(lfsr));
-    srand(time(NULL));
-    for (int i = 0; i < 10; i++) {
+    clock_t elf_time = 0, lf_time = 0;
+    //test functions will be called this many times
+    //with identical inputs and outputs discarded
+    //to allow clock() to show a time difference > 0
+    int num_of_wasted_calls = 10000;
+    for (int i = 0; i < 1000; i++) {
         lfsr[0] = (((uint64_t) rand()) << 32) | rand();
         lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        printf("testing for lfsr[0]%"PRIu64" lfsr[1] %"PRIu64"\n", lfsr[0], lfsr[1]);
-        mu_assert("linearFeedback != efficientLinearFeedback for ", linearFeedback(lfsr) == efficientLinearFeedback(lfsr));
+        clock_t non_efficient_start = clock();
+        int result_bit;
+        for(int g=0; g < num_of_wasted_calls; g++) {
+            result_bit = linearFeedback(lfsr);
+        }
+        lf_time += clock() - non_efficient_start;
+        clock_t efficient_start = clock();
+        int e_result_bit;
+        for(int i=0;i<num_of_wasted_calls;i++) {
+            e_result_bit = efficientLinearFeedback(lfsr);
+        }
+        elf_time += clock() - efficient_start;
+        mu_assert("linearFeedback != efficientLinearFeedback for ", result_bit == e_result_bit);
     }
-    clock_t elfTime = 0, lfTime = 0;
-    int numberOfRuns = 100000;
-    clock_t start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        lfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        efficientLinearFeedback(lfsr);
-        elfTime += clock() - start;
-    }
-    start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        lfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        linearFeedback(lfsr);
-        lfTime += clock() - start;
-    }
-    printf("total ElfTime %d\n", (int) elfTime);
-    printf("total LfTime %d\n", (int) lfTime);
-    mu_assert("total efficientLinearFeedback > total linearFeedback", elfTime < lfTime);
+    printf("total ElfTime %d\n", (int) elf_time);
+    printf("total LfTime %d\n", (int) lf_time);
+    mu_assert("total efficientLinearFeedback > total linearFeedback", elf_time < lf_time);
     return 0;
 }
 
 static char *testEfficientNonLinearFeedback() {
-    //in the tests, hbit is set incorrecty for the cipher states
-    //becuase we're only testing for time, it doesn't matter
     uint64_t lfsr[2];
     uint64_t nlfsr[2];
     clock_t eNonTime = 0, nonTime = 0;
-    int numberOfRuns = 100000;
-    clock_t start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
+    //test functions will be called this many times
+    //with identical inputs and outputs discarded
+    //to allow clock() to show a time difference > 0
+    int num_of_wasted_calls = 10000;
+    for (int i = 0; i < 1000; i++) {
         lfsr[0] = (((uint64_t) rand()) << 32) | rand();
         lfsr[1] = (((uint64_t) rand()) << 32) | rand();
         nlfsr[0] = (((uint64_t) rand()) << 32) | rand();
         nlfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        efficientNonLinearFeeback(nlfsr, lfsr[0] & 1);
-        eNonTime += clock() - start;
-    }
-    start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        lfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        nonLinearFeeback(nlfsr, lfsr[0] & 1);
-        nonTime += clock() - start;
+        printf("testing for lfsr[0]%"PRIu64" lfsr[1] %"PRIu64" nlfsr[0]%"PRIu64" nlfsr[1] %"PRIu64"\n", lfsr[0], lfsr[1], nlfsr[0], nlfsr[1]);
+        clock_t non_efficient_start = clock();
+        int result_bit;
+        for(int i=0;i<num_of_wasted_calls;i++) {
+            result_bit = nonLinearFeeback(nlfsr, (int) (lfsr[0] & 1));
+        }
+        nonTime += clock() - non_efficient_start;
+        clock_t efficient_start = clock();
+        int e_result_bit;
+        for(int i=0;i<num_of_wasted_calls;i++) {
+            e_result_bit = efficientNonLinearFeeback(nlfsr, (int) (lfsr[0] & 1));
+        }
+        eNonTime += clock() - efficient_start;
+        mu_assert("non_linear_feeback != efficient_non_linear_feedback", result_bit == e_result_bit);
     }
     printf("total eNoneTime %d\n", (int) eNonTime);
     printf("total nonTime %d\n", (int) nonTime);
@@ -263,8 +267,8 @@ static char *testEfficientNonLinearFeedback() {
 }
 
 static char *testPreoutput() {
-    uint64_t lfsr[2] = {0};
-    uint64_t nlfsr[2] = {0};
+    uint64_t lfsr[2] = {0,0};
+    uint64_t nlfsr[2] = {0,0};
     int hBit = 0;
     mu_assert("preoutput failed for all 0", preOutput(hBit, lfsr, nlfsr) == 0);
     lfsr[0] = 0xffffffffffffffff;
@@ -295,51 +299,41 @@ static char *testPreoutput() {
 }
 
 static char *testEfficientPreOutput() {
-    uint64_t lfsr[2] = {0};
-    uint64_t nlfsr[2] = {0};
-    int hBit = 0;
-    int pre = preOutput(hBit, lfsr, nlfsr);
-    int ePre = efficientPreOutput(hBit, lfsr, nlfsr);
-    mu_assert("preoutput != efficientPreoutput for all 0's", pre == ePre);
+    uint64_t lfsr[2] = {0, 0};
+    uint64_t nlfsr[2] = {0, 0};
+    int h_bit = 0;
+    int result_bit = preOutput(h_bit, lfsr, nlfsr);
+    int e_result_bit = efficientPreOutput(h_bit, lfsr, nlfsr);
+    mu_assert("preoutput != efficientPreoutput for all 0's", result_bit == e_result_bit);
     lfsr[0] = 0xffffffffffffffff;
     lfsr[1] = 0xffffffffffffffff;
     nlfsr[0] = 0xffffffffffffffff;
     nlfsr[1] = 0xffffffffffffffff;
-    hBit = 1;
-    mu_assert("preoutput != efficientPreoutput for all 1's", pre == ePre);
-    srand(time(NULL));
-    for (int i = 0; i < 10; i++) {
-        lfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        hBit = rand() >> 31;
-        printf("testing for lfsr[0]%"PRIu64" lfsr[1] %"PRIu64" nlfsr[0]%"PRIu64" nlfsr[1] %"PRIu64" hbit %d\n", lfsr[0], lfsr[1], nlfsr[0], nlfsr[1], hBit);
-        mu_assert("preoutput != efficientPreoutput", preOutput(hBit, lfsr, nlfsr) == efficientPreOutput(hBit, lfsr, nlfsr));
-    }
-    //in the tests, hbit is set incorrecty for the cipher states
-    //becuase we're only testing for time, it doesn't matter
+    h_bit = 1;
+    result_bit = preOutput(h_bit, lfsr, nlfsr);
+    e_result_bit = efficientPreOutput(h_bit, lfsr, nlfsr);
+    mu_assert("preoutput != efficientPreoutput for all 1's", result_bit == e_result_bit);
+    //we ignore the fact that the h_bit value is likely to be incorrect for these cipher states
     clock_t ePreTime = 0, preTime = 0;
-    int numberOfRuns = 10000;
-    clock_t start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
+    int num_of_wasted_calls = 10000;
+    for (int i = 0; i < 1000; i++) {
         lfsr[0] = (((uint64_t) rand()) << 32) | rand();
         lfsr[1] = (((uint64_t) rand()) << 32) | rand();
         nlfsr[0] = (((uint64_t) rand()) << 32) | rand();
         nlfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        hBit = rand() >> 31;
-        efficientPreOutput(hBit, lfsr, nlfsr);
-        ePreTime += clock() - start;
-    }
-    start = clock();
-    for (int i = 0; i < numberOfRuns; i++) {
-        lfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        lfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[0] = (((uint64_t) rand()) << 32) | rand();
-        nlfsr[1] = (((uint64_t) rand()) << 32) | rand();
-        hBit = rand() >> 31;
-        preOutput(hBit, lfsr, nlfsr);
-        preTime += clock() - start;
+        h_bit = rand() >> 31;
+        printf("testing for lfsr[0]%"PRIu64" lfsr[1] %"PRIu64" nlfsr[0]%"PRIu64" nlfsr[1] %"PRIu64" hbit %d\n", lfsr[0], lfsr[1], nlfsr[0], nlfsr[1], h_bit);
+        clock_t pre_bit_start = clock();
+        for(int i=0;i<num_of_wasted_calls;i++) {
+            result_bit = preOutput(h_bit, lfsr, nlfsr);
+        }
+        preTime += clock() - pre_bit_start;
+        clock_t efficient_pre_bit_start = clock();
+        for(int i=0;i<num_of_wasted_calls;i++) {
+            e_result_bit = efficientPreOutput(h_bit, lfsr, nlfsr);
+        }
+        ePreTime += clock() - efficient_pre_bit_start;
+        mu_assert("preoutput != efficientPreoutput", result_bit == e_result_bit);
     }
     printf("total ePreTime %d\n", (int) ePreTime);
     printf("total preTime %d\n", (int) preTime);

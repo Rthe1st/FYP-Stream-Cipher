@@ -63,44 +63,12 @@ void printBits(size_t const size, void const *const ptr) {
 }
 
 void printkeyStream(int *keyStream, size_t size) {
-    debug_print("keybits: \n");
-    debug_print("in bin:\n");
+    printf("keybits: \n");
+    printf("in bin:\n");
     for (int i = 0; i < size; i++)
         printBits(1, &keyStream[i]);
-    debug_print("\nin hex:\n");
+    printf("\nin hex:\n");
     for (int i = 0; i < size; i++)
-        debug_print("%01x ", keyStream[i]);
-    debug_print("\n");
-}
-
-//http://en.wikipedia.org/wiki/Hamming_weight#Efficient_implementation
-
-//This is better when most bits in x are 0
-//It uses 3 arithmetic operations and one comparison/branch per "1" bit in x.
-//x-1 makes the lowest 1 bit a 0 and all lower 0's into 1's
-//and'ing this with x means the lowest 1 and all subsequent 0's become 0
-//so whole 'lumps' of zeros are processed at once, good for when only a few 1's
-
-//SO VUNERABLE TO SIDE CHANNEL
-int popcount_4(uint64_t x) {
-    int count;
-    for (count = 0; x; count++)
-        x &= x - 1;
-    return count;
-}
-
-//the above modded for doing xor
-//0^0...^0 always gives 0
-//and 1^0 = 1, so only the number of 1's matters
-int xor_bits(uint64_t x) {
-    int result = 0;
-    while (x) {
-        x &= x - 1;
-        result = !result;
-    }
-    return result;
-}
-
-int and_bits(uint64_t x, uint64_t mask) {
-    return mask == (x & mask);
+        printf("%01x ", keyStream[i]);
+    printf("\n");
 }

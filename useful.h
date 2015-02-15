@@ -13,6 +13,4 @@ void printBits(size_t const size, void const * const ptr);
 char binToHex(int bin);
 void hexArrayToBin(uint8_t *bin, char *hex, size_t size);
 void printkeyStream(int* keyStream, size_t size);
-int xor_bits(uint64_t x);
-int and_bits(uint64_t x, uint64_t mask);
 #endif
