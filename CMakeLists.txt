@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.4)
 project(FYP_Stream_Cipher)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c11")
 set(PRODUCTION_SOURCE_FILES main.c grain.c useful.c efficient_grain.c encoding.c)
 set(CUBE_ATTACK_SOURCE_FILES attack_main.c useful.c cube_attack.c grain.c)
 set(UNIT_TEST_CUBE_ATTACK_SOURCE_FILES cube_attack_unit_tests.c cube_attack.c useful.c grain.c)
