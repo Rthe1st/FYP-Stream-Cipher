@@ -1,0 +1,151 @@
+\documentclass{report}
+\usepackage{cite}
+\title{Final Year Project Report}
+\author{Richard Sommerville}
+\date{}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{Abstract}
+Stream ciphers are a widely used type of cipher for encryption based on cryptographically secure pseudo-random number generators. In this paper, we examine the specifications of several such ciphers such as Grain-128 and how we chose to implement them. Later we test their ability to withstand an attack known as the Cube Attack, a method of differential analysis.
+
+Although this paper provides little original insight into cipher design or attacks, the aim is to provide a better introductory explanation then has been given before, with fewer assumptions for background knowledge of stream cipher mathematics.
+\chapter{Introduction}
+In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". The aim of this project is
+to provide a clear and understandable introduction to this attack and its application to stream ciphers for competent computer scientists with little knowledge of stream ciphers specifically (and the maths behind them).
+
+%mention grain-128 being broken by cube attack already
+The ciphers we have chosen to operate on are Grain-128 and Salsa20. Implementations of each are provided in C.
+%add link to git repo for implementations?
+In this report we provide a brief overview of each ciphers implementation and discuss the methods used to code them efficiently.
+
+As a precursor to explaining the use of the Cube Attack some effort is made to explain how stream ciphers can be mathematically represented in terms of their keys, initialisation vectors (IV) and output bits.
+
+A general overview of the Cube Attack is given, alongside techniques such as the Mobius Transform that can be used to speed it up. The explanation is further enhanced by demonstrating its use on the implemented ciphers and we explore how the properties of each cipher alter its effectiveness.
+
+In attempting to make the an accessible explanation, all that is assumed is basic (undergraduate/bachelor) knowledge of general computer science and algebra.
+
+\chapter{Background}
+\section{Stream Ciphers}
+A stream cipher is a cipher that encrypts a plain text continuously, often by performing an XOR operation between a plain text bit and a pseudo-random bit. This pseudo random bit is produced as a function of two initial values, a private key and a public IV. The random quality of the bits is often created by having each successive output bit alter the state of the cipher. Thus, it can be helpful to think of each output bit as a function of the Key, IV and all previous output bits, although each previous output bit can in turn be recursively defined in terms of key and IV alone.
+
+This reliance on random values for security has many parallels with the one-time pad scheme, where the stream ciphers can be seen as having traded security for usability.
+%add link to a reference source or someink
+
+\section{Binary Algerbra}
+Often a stream ciphers key, IV, internal state and outputs are defined in bits, so we discuss them in term of what is known as GF(2), a finite field over 0 and 1. That is, only the values of 0 and 1 are valid. With this in mind, the operations add and multiply can be taken to mean XOR and AND respectively because they have identical truth tables.\\*
+	$0*1 = 1*0=0, 1*1=1, 0*0=0$ (AND)\\*
+	$1+1=0, 0+0=0, 1+0=0+1=1$ (XOR)\\*
+	And less importantly (for our needs):\\*
+	$1-1=0, 0-0=0, 1-0=1, 0-1=1$\\*
+	$1/0=NAN, 0/0=NAN, 0/1=0, 1/1=1$\\*
+	
+\subsection{GF(2) Properties}
+\begin{equation} \label{eq:timesand}
+ab = a AND b
+\end{equation}
+\begin{equation} \label{eq:addxor}
+a+b = a XOR b
+\end{equation}
+Because 1\&1=1 and 0\&0 = 0:
+\begin{equation} \label{eq:GFpowers}
+a^n = a
+\end{equation}
+
+\section{Mathematical Representation}
+In order to make a mathematical attack on a cipher, we must first have a method
+of representing its various parts so we can easily identify and manipulate its properties; it is difficult to perform algebraic operations on a diagram.
+
+The basics of this can be demonstrated using a Linear Feedback Shift Register (often a component of real stream ciphers). Observe the diagram below:
+
+\textit{Note: Add diagram}
+
+This register is composed of 5 bits, with bit 0 on the right and bit 4 on the left. On being clocked to produce a bit, the register decreases each bit's index by one (so bit 4 becomes bit 3) and places the XOR of bits 0 and 3 into 4. If we used this as a (very poor) stream cipher, the XOR of bits 0 and 3 would additionally be output and an XOR performed with a plain text bit to encrypt it.
+
+The initial state (before any clocking) of the registers bits can be thought of as its key. Let the key be an array of 5 bits. As explained above, bit 0 XOR bit 3 is bit 0 + bit 3 over GF(2) and so:
+\begin{verbatim}
+outputBit[0] = key[0]+key[3]
+Or:
+registerBit[0] = key[0]+key[3]
+\end{verbatim}
+This initial register state would be:
+\begin{verbatim}
+state = [key[0],key[1],key[2],key[3],key[4]]
+\end{verbatim}
+After one clock:
+\begin{verbatim}
+outputBit[0] = key[0]+key[3]
+state = [outputBit[0],key[0],key[1],key[2],key[3]]
+      = [key[0]+key[3],key[0],key[1],key[2],key[3]]
+\end{verbatim}
+After two clocks:
+\begin{verbatim}
+outputBit[1] = outputBit[0]+key[3]
+state = [outputBit[1], outputBit[0],key[0],key[1],key[2]]
+      = [outputBit[0]+key[3], key[0]+key[3],key[0],key[1],key[2]]
+      = [(key[0]+key[3])+key[3], key[0]+key[3],key[0],key[1],key[2]]
+\end{verbatim}
+This also shows how each clock of the register increases the complexity of the equation for the next output bit. For the reason most stream ciphers require a large number of clocks to be made and output bits thrown away before any may be used for encryption.
+
+Additionally the feedback in this case is linear because it only involves additions. Non-linear feedback would be used in a real world stream cipher in order to better hide the properties of the keys. bit[0]+key[3]*bit[4] is non-linear for example.
+%talk about representing outbit n in terms of n-keylength
+\chapter{Cipher Specifications  and Implementation}
+\section{Grain-128}
+Grain-128 is a revised version the Grain cipher that was submitted to the eSTREAM project. Its official specification featured an additional mode for enabling authentication, however we ignore that here.
+\subsection{Specification}
+Grain is a shift register based cipher, featuring two 128 bit registers. it has a 128 bit key which is initialised in its first register and a 96 bit IV which fills the beginning 96 bits of the second register.
+
+The first 250 bit of its output must be discarded before it can be used to encrypt text.
+\textit{Note: Add some discussion of design}
+\subsection{Implementation}
+\subsubsection{Efficiency}
+The key and IV were stored as two 64 bit integers each, with the first integer representing bits 0-63 and the second 64-127. The alternative method would of been to store each as an array of 128 elements, and treating each element as a bit. This would of required 128 bytes as a byte is the smallest available type in C, verses the 4 bytes used by two 64 bit integers.
+
+Although this saves us 128-8=120 bytes of space, it does make some XOR operations slower. Rather simply XOR the bit elements, which takes 6 operations, we must first extract the required bits from their integers and then XOR them, which take 12 operations.
+\begin{verbatim}
+lfsr[0]^lfsr[7]^lfsr[38]^lfsr[70]^lfsr[81]^lfsr[96]
+\end{verbatim}
+verses
+\begin{verbatim}
+1 & ((lfsr[0] << 0) ^ (lfsr[0] << 7) ^ (lfsr[0] << 38) ^ (lfsr[1] << 70-64) ^
+ (lfsr[1] << 81-64) ^ (lfsr[1] << 96-64))
+\end{verbatim}
+\section{Salsa20}
+\subsection{Specification}
+\subsection{Implementation}
+\chapter{Cube Attack}
+\section{Overview}
+The Cube Attack's basic premise is to derive a set of linear equations made up of key bit values. These equations are computed offline by the attacker setting their own key and IV values. Once N equations have been found involving N or less key variables the online phrase can begin. 
+
+Then during the online phrase the attacker submits IV values to cipher and equates the output bits to the appropriate linear equation. When all equations values have been found, the equations variables can be solved by standard methods to solve sets of linear equations.
+\subsection{Sum of IV bits}
+The first key observation that allows the cube attack to take place is the formulae:
+\begin{equation} \label{eq:GFpowers}
+pI = \sum\limits_{V \in CI} pV 
+\end{equation}
+Note: p is used to mean polynomial. pV is polynomial given by V, pI is polynomial of I.
+\subsubsection{Explanation}
+CI represents what is termed a cube of initialisation vectors. An attack would pick some IV bits, say 0, 60, 90. There are $2^3$ combinations of values that could be used for these bits. If you imagine a set of axis, one for each bit, then the combinations of vectors would form a 3 dimensional cube of vectors representing combinations of values. If this is a strange idea, then only you need only think of it as a set of $2^N$ combinations of values, the actual cube idea is only an aide.
+
+CI represents this set. pV represents the polynomial equation for the first output bit of a cipher when its IV is set to $V \in CI$. Summing all these polynomials gives you polynomial pI. Although the algebraic forms of each pV (and so pI) are unknown, you do know there numeric values, the value of the first output bit.
+%reference proof
+\subsection{Superpoly}
+The second key observation is that the form of pI is known to be:
+\begin{equation} \label{eq:GFpowers}
+pI = tIpS(I)+q(x1...xn)=pS(I)
+\end{equation}
+The sum polynomial pI from the previous equation can be put in the above form, and then simplified.
+pS(I) is dubbed the "superpoly" in the original cube attack paper. Its important property is that it is guaranteed to contain only key bits as terms, not IV bits. This holds because tI is a term containing all IV bits that are being set by the attacker. All terms in pI that contain tI and other IV bits will cause the term to be set to 0. Thus the only terms in pS(I) not set to 0 will be made of key bits only. The original paper proves that q(x1...xn) cancels \cite{DinurShamir2009}.
+\subsubsection{Max Terms}
+Any set of IV bits such that pS(I) is linear is termed a Max Term. These are the most useful to the attacker because finding the terms of a linear pS(I) is trivial: Compute p(I) multiple times, first with all keys bits set to 0, and then with each single key bit set to 1 in turn. All key bits set to 0 will be removed form the pS(I) equation, meaning pI will only equal 1 if the key bit is present as a term. Once all terms have been found, the attacker has a linear equation and can choose different IVs in an attempt to find more.
+\section{Alterations}
+\section{Against Grain-128}
+\subsection{Method}
+\subsection{Results}
+\section{Against Salsa20}
+\subsection{Method}
+\subsection{Results}
+\chapter{Conclusion}
+\bibliographystyle{plain}
+\bibliography{bib}
+\end{document}
