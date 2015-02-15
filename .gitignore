@@ -29,3 +29,6 @@ spec_grain_128/
 
 #plus ignore pdfs from latex
 Report/*.pdf
+
+#script generated files
+power_2_constants.h
