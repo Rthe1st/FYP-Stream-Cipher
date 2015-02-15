@@ -1,7 +1,6 @@
 #include<stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
-#include <dxgi.h>
 
 #include "useful.h"
 #include "grain.h"
@@ -22,29 +21,26 @@ const int INIT_CLOCKS = 256;
 
 
 void set_bit(uint64_t *bits, const int bit_value, int bit_index){
+    //extract the bit we're setting to see if it needs to be changed
+    //if so, change it buy adding/subtracting the appropriate power of 2
     const int bits_element = bit_index/64;
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit value %d bit index %d\n", bits[0], bits[1], bit_value, bit_index);
     bit_index = bit_index%64;
-    const int is_one = !!(bits[bits_element] & power(2, bit_index));
+    const int is_one = (int) (1 & (bits[bits_element] >> bit_index));
     debug_print("isone %d\n", is_one);
+    const uint64_t bit_to_add = ((uint64_t) 1) << bit_index;
     if(!is_one && (bit_value == 1)){
-        bits[bits_element] += power(2, bit_index);
+        bits[bits_element] += bit_to_add;
     }else if(is_one && (bit_value == 0)){
-        bits[bits_element] -= power(2, bit_index);
+        bits[bits_element] -= bit_to_add;
     }
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64"\n", bits[0], bits[1]);
 }
 
 int get_bit(const uint64_t *const bits, const int bit_index){
     debug_print("bits[0] %"PRIu64" bits[1] %"PRIu64" bit index %d\n", bits[0], bits[1], bit_index);
-    uint64_t bit;
-    if(bit_index < 64){
-        bit =  bits[0] & power(2, bit_index);
-    }else{
-        bit = bits[1] & power(2, bit_index%64);
-    }
-    debug_print("return bit %d\n", !!bit);
-    return !!bit;
+    //to get bit n: shift right n places so bit n is at index 0, then & with 1 to extract it
+    return (int)(1 & (bits[bit_index/64] >> (bit_index%64)));
 }
 
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
