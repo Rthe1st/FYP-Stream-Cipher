@@ -94,17 +94,18 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension) {
 //increase the largest dimension by 1
 // go to 1)
 
-Max_term **find_max_terms(int *max_term_count, int max_term_limit, size_t dimension_limit) {
+Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit) {
     int *dimensions = calloc(dimension_limit, sizeof(int));
     int dimension_count = 1;
-    *max_term_count = 0;
-    Max_term **max_terms = malloc(sizeof(size_t) * max_term_limit);
-    while (*max_term_count < max_term_limit && dimension_count < dimension_limit) {
+    Max_terms_list *max_terms_list = malloc(sizeof(Max_terms_list));
+    max_terms_list->max_terms = malloc(sizeof(max_terms_list));
+    max_terms_list->max_term_count = 0;
+    while (max_terms_list->max_term_count < max_term_limit && dimension_count < dimension_limit) {
         if (is_super_poly_linear(dimensions, dimension_count)) {
             Max_term *potential_max_term = construct_max_term(dimensions, dimension_count);
             if (potential_max_term->numberOfTerms > 0) {
-                max_terms[*max_term_count] = potential_max_term;
-                (*max_term_count)++;
+                max_terms_list->max_terms[max_terms_list->max_term_count] = *potential_max_term;
+                (max_terms_list->max_term_count)++;
             }
         }
         if (dimensions[dimension_count - 1] == IV_LENGTH - 1) {
@@ -112,7 +113,7 @@ Max_term **find_max_terms(int *max_term_count, int max_term_limit, size_t dimens
         }
         dimensions[dimension_count - 1]++;
     }
-    return max_terms;
+    return max_terms_list;
 }
 
 Max_term *construct_max_term(int *cube_axes, int cube_dimensions) {
