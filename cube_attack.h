@@ -3,7 +3,9 @@
 #ifndef CUBE_ATTACK_H
 #define CUBE_ATTACK_H
 
-#define SETUP_CLOCK_ROUNDS 1
+extern const int SETUP_CLOCK_ROUNDS;
+extern const int MAX_TERM_LIMIT;
+extern const int DIMENSION_LIMIT;
 
 typedef struct Max_term{
     uint64_t* iv;//make sure these are unsigned
