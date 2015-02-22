@@ -17,7 +17,7 @@
 //8) Online, find super poly value for each IV with a linear super poly.
 //9) solve linear equations
 
-const int SETUP_CLOCK_ROUNDS  = 10;
+const int SETUP_CLOCK_ROUNDS = 10;
 const int MAX_TERM_LIMIT = 2;
 const int DIMENSION_LIMIT = 2;
 
@@ -42,12 +42,12 @@ uint64_t *generate_iv(int *dimensions, int dimension_count) {
 }
 
 //mask is expected to be the same form as key/iv (i.e. 2 uint64_ts, where [0] is the lower bits
-uint64_t * iv_from_mask(uint64_t * mask, int * dimensions, int dimension_count){
+uint64_t *iv_from_mask(uint64_t *mask, int *dimensions, int dimension_count) {
     int mask_result[dimension_count];
     int masked_axis_count = 0;
     for (int axis_index = 0; axis_index < dimension_count; axis_index++) {
         //extract mask value per axis
-        if ((mask[axis_index/64] >> axis_index) & 1) {
+        if ((mask[axis_index / 64] >> axis_index) & 1) {
             debug_print("mask_index %d is 1 adding axis %d\n", axis_index, dimensions[axis_index]);
             mask_result[masked_axis_count] = dimensions[axis_index];
             masked_axis_count++;
@@ -71,8 +71,8 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension) {
         uint64_t *key1 = generate_key();
         uint64_t *key2 = generate_key();
         uint64_t combined_keys[] = {key1[0] ^ key2[0], key1[1] ^ key2[1]};
-        int summed_after = get_super_poly_bit(key1, cube_axes, cube_dimension) ^ get_super_poly_bit(key2, cube_axes, cube_dimension);
-        int summed_before = get_super_poly_bit(combined_keys, cube_axes, cube_dimension) ^ zeroed_key_poly;
+        int summed_after = get_super_poly_bit(key1, cube_axes, cube_dimension) ^get_super_poly_bit(key2, cube_axes, cube_dimension);
+        int summed_before = get_super_poly_bit(combined_keys, cube_axes, cube_dimension) ^zeroed_key_poly;
         free(key1);
         free(key2);
         if (summed_after != summed_before) {
@@ -81,6 +81,26 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension) {
         }
     }
     return is_linear;
+}
+
+void increase_dimensions(int *dimensions, int *dimension_count) {
+    //dimensions elements should be in ascending order
+    for (int i = (*dimension_count) - 1; i >= 0; i--) {
+        //starting with largest, check if it can be increased
+        if (dimensions[i] != IV_LENGTH - (*dimension_count - i)) {
+            //if it can be, increase it and make all elements above it sequential
+            dimensions[i]++;
+            for (int g = i + 1; g < *dimension_count; g++) {
+                dimensions[g] = dimensions[g - 1] + 1;
+            }
+            return;
+        }
+    }
+    //if no elements can be increased, more dimensions are needed
+    (*dimension_count)++;
+    for (int i = 0; i < *dimension_count; i++) {
+        dimensions[i] = i;
+    }
 }
 
 //find max terms
@@ -96,22 +116,19 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension) {
 
 Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit) {
     int *dimensions = calloc(dimension_limit, sizeof(int));
-    int dimension_count = 1;
+    int *dimension_count = malloc(sizeof(int)); *dimension_count = 1;
     Max_terms_list *max_terms_list = malloc(sizeof(Max_terms_list));
     max_terms_list->max_terms = malloc(sizeof(max_terms_list));
     max_terms_list->max_term_count = 0;
-    while (max_terms_list->max_term_count < max_term_limit && dimension_count < dimension_limit) {
-        if (is_super_poly_linear(dimensions, dimension_count)) {
-            Max_term *potential_max_term = construct_max_term(dimensions, dimension_count);
+    while (max_terms_list->max_term_count < max_term_limit && *dimension_count < dimension_limit) {
+        if (is_super_poly_linear(dimensions, *dimension_count)) {
+            Max_term *potential_max_term = construct_max_term(dimensions, *dimension_count);
             if (potential_max_term->numberOfTerms > 0) {
                 max_terms_list->max_terms[max_terms_list->max_term_count] = *potential_max_term;
                 (max_terms_list->max_term_count)++;
             }
         }
-        if (dimensions[dimension_count - 1] == IV_LENGTH - 1) {
-            dimension_count--;
-        }
-        dimensions[dimension_count - 1]++;
+        increase_dimensions(dimensions, dimension_count);
     }
     return max_terms_list;
 }
@@ -151,13 +168,19 @@ int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension) {
     //currently only current_maks[0] is used
     //[1] will be used to calculate when there are more then 64 axis
     //waiting until I make a type to handle 128 binary digit numbers
-    for (uint64_t current_mask[2] = {0,0}; current_mask[0] < number_of_derivatives; current_mask[0]++) {
-        debug_print("next mask: %"PRIu64"\n", current_mask[0]);
-        uint64_t * current_iv = iv_from_mask(current_mask, iv_cube_axes, cube_dimension);
+    for (uint64_t current_mask[2] = {0, 0}; current_mask[0] < number_of_derivatives; current_mask[0]++) {
+        debug_print("next mask: %"
+                PRIu64
+                "\n", current_mask[0]);
+        uint64_t *current_iv = iv_from_mask(current_mask, iv_cube_axes, cube_dimension);
         State state = setupGrain(current_iv, key, SETUP_CLOCK_ROUNDS);
         int next_super_bit = production_clock(&state);
         super_poly_bit = super_poly_bit ^ next_super_bit;
-        debug_print("get_superbit iv[0]: %"PRIu64" iv[1]: %"PRIu64" superbit: %d\n", current_iv[0], current_iv[1], next_super_bit);
+        debug_print("get_superbit iv[0]: %"
+                PRIu64
+                " iv[1]: %"
+                PRIu64
+                " superbit: %d\n", current_iv[0], current_iv[1], next_super_bit);
     }
     return super_poly_bit;
 }

@@ -69,6 +69,29 @@ static char *test_generate_iv() {
     return 0;
 }
 
+char *test_increase_dimensions(){
+    int *dimension_count = malloc(sizeof(int));
+    int *dimensions = malloc(sizeof(int)*IV_LENGTH);
+    dimensions[0] = 1;
+    *dimension_count = 1;
+    increase_dimensions(dimensions, dimension_count);
+    for(int i=0;i<*dimension_count;i++){
+        printf("dimensions[%d] = %d\n", i, dimensions[i]);
+    }
+    printf("dim count %d\n", *dimension_count);
+    mu_assert("increase_dimension failed, dimensions[0] == 2 && dimension_count == 1", dimensions[0] == 2 && *dimension_count == 1);
+    *dimension_count = 2;
+    dimensions[0] = 94; dimensions[1] = 95;
+    increase_dimensions(dimensions, dimension_count);
+    for(int i=0;i<*dimension_count;i++){
+        printf("dimensions[%d] = %d\n", i, dimensions[i]);
+    }
+    printf("dim count %d\n", *dimension_count);
+    mu_assert("increase_dimension failed, dimensions[0] == 0, dimensions[0] == 1, dimensions[0] == 2 && dimension_count == 3",
+            dimensions[0] == 0 && dimensions[1] == 1 && dimensions[2] == 2 && *dimension_count == 3);
+    return 0;
+}
+
 char *test_get_super_poly_bit_case(uint64_t **ivs, uint64_t ivs_size, uint64_t *key, int *axises, int cube_dimension){
     printf("axises: ");
     for(int i=0;i<cube_dimension;i++){
@@ -176,6 +199,7 @@ static char *test_get_super_poly_bit() {
 }
 
 static char *cube_attack_tests() {
+    mu_run_test(test_increase_dimensions);
     mu_run_test(test_generate_iv);
     mu_run_test(test_get_super_poly_bit);
     return 0;
