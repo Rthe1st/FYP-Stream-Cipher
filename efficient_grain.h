@@ -8,9 +8,9 @@
 
 int and_bits(const uint64_t sum_powers_of_2, const uint64_t bits);
 
-void efficientInitialisationClock(State* state);
+void efficientInitialisationClock(Grain_state * state);
 
-int efficientProductionClock(State* state);
+int efficientProductionClock(Grain_state * state);
 
 void efficientUpdateSRState(uint64_t *shiftRegister, const int newBit);
 

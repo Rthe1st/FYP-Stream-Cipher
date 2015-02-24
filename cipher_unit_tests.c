@@ -7,6 +7,7 @@
 #include "grain.h"
 #include "useful.h"
 #include "efficient_grain.h"
+#include "cipher_helpers.h"
 
 int tests_run = 0;
 
@@ -96,9 +97,9 @@ static int testVector(uint8_t *expectedOutput, uint64_t *key, uint64_t *iv, int 
     size_t outputSize = sizeof expectedOutput / sizeof expectedOutput[0];
     int keyStream[outputSize];
     if (efficient)
-        efficientInitAndClock(keyStream, outputSize, key, iv);
+        efficientInitAndClock(keyStream, outputSize*4, key, iv);
     else
-        initAndClock(keyStream, outputSize, key, iv);
+        grainInitAndClock(keyStream, outputSize*4, key, iv, GRAIN_FULL_INIT_CLOCKS);
     printkeyStream(keyStream, outputSize);
     for (int i = 0; i < (sizeof keyStream / sizeof keyStream[0]); i++) {
         if (expectedOutput[i] != keyStream[i]) {
@@ -113,8 +114,9 @@ static char *testGrain() {
     //IV :        000000000000000000000000
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
     char rawExpectedOutput[] = "c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7";
-    uint8_t parsedExpectedOutput[sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]];
-    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
+    int number_of_output_bits = (sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
+    uint8_t parsedExpectedOutput[number_of_output_bits];
+    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, number_of_output_bits);
     uint64_t key[2] = {(uint64_t) 0, (uint64_t) 0};
     uint64_t iv[2] = {(uint64_t) 0, (uint64_t) 0};
     mu_assert("grain error, keyStream != expectedOutput, vector 1", testVector(parsedExpectedOutput, key, iv, 0));
@@ -136,8 +138,9 @@ static char *testEfficientGrain() {
     //IV :        000000000000000000000000
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
     char rawExpectedOutput[] = "c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7";
-    uint8_t parsedExpectedOutput[sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]];
-    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
+    int number_of_output_bits = (sizeof rawExpectedOutput / sizeof rawExpectedOutput[0]);
+    uint8_t parsedExpectedOutput[number_of_output_bits];
+    hexArrayToBin(parsedExpectedOutput, rawExpectedOutput, number_of_output_bits);
     uint64_t key[2] = {(uint64_t) 0, (uint64_t) 0};
     uint64_t iv[2] = {(uint64_t) 0, (uint64_t) 0};
     mu_assert("efficientGrain error, keyStream != expectedOutput, vector 1", testVector(parsedExpectedOutput, key, iv, 1));
@@ -158,16 +161,18 @@ static char *testEfficientGrain() {
         key[1] = (((uint64_t) rand()) << 32) | rand();
         iv[0] = (((uint64_t) rand()) << 32) | rand();
         iv[1] = (((uint64_t) rand()) << 32) | rand();
+        printf("rand key[0] %"PRIu64" key[1] %"PRIu64"\n", key[0], key[1]);
+        printf("rand iv[0] %"PRIu64" iv[1] %"PRIu64"\n", iv[0], iv[1]);
         clock_t non_efficient_start = clock();
         int result_bits[output_size];
-        initAndClock(result_bits, output_size, key, iv);
+        grainInitAndClock(result_bits, output_size*4, key, iv, GRAIN_FULL_INIT_CLOCKS);
         grain_time += clock() - non_efficient_start;
         clock_t efficient_start = clock();
         int e_result_bits[output_size];
-        efficientInitAndClock(e_result_bits, output_size, key, iv);
+        efficientInitAndClock(e_result_bits, output_size*4, key, iv);
         e_grain_time += clock() - efficient_start;
         for(int g=0; g < output_size; g++){
-            mu_assert("grain != efficient grain", result_bits[i] == e_result_bits[i]);
+            mu_assert("grain != efficient grain", result_bits[g] == e_result_bits[g]);
         }
     }
     printf("total EfficientGrainTime %d\n", (int) e_grain_time);
@@ -209,7 +214,7 @@ static char *testEfficientLinearFeedback() {
     //with identical inputs and outputs discarded
     //to allow clock() to show a time difference > 0
     int num_of_wasted_calls = 10000;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100; i++) {
         lfsr[0] = (((uint64_t) rand()) << 32) | rand();
         lfsr[1] = (((uint64_t) rand()) << 32) | rand();
         clock_t non_efficient_start = clock();
@@ -324,12 +329,12 @@ static char *testEfficientPreOutput() {
         h_bit = rand() >> 31;
         printf("testing for lfsr[0]%"PRIu64" lfsr[1] %"PRIu64" nlfsr[0]%"PRIu64" nlfsr[1] %"PRIu64" hbit %d\n", lfsr[0], lfsr[1], nlfsr[0], nlfsr[1], h_bit);
         clock_t pre_bit_start = clock();
-        for(int i=0;i<num_of_wasted_calls;i++) {
+        for(int g =0; g <num_of_wasted_calls; g++) {
             result_bit = preOutput(h_bit, lfsr, nlfsr);
         }
         preTime += clock() - pre_bit_start;
         clock_t efficient_pre_bit_start = clock();
-        for(int i=0;i<num_of_wasted_calls;i++) {
+        for(int g =0; g <num_of_wasted_calls; g++) {
             e_result_bit = efficientPreOutput(h_bit, lfsr, nlfsr);
         }
         ePreTime += clock() - efficient_pre_bit_start;

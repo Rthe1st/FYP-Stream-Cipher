@@ -2,7 +2,7 @@
 #include "encoding.h"
 #include "useful.h"
 
-void encryptBinary(State state, FILE* inFp, FILE* outFp){
+void encryptBinary(Grain_state state, FILE* inFp, FILE* outFp){
     char next;
     while((next = getc(inFp)) != EOF){
         for (int bit = 0; bit < 8; bit++) {
@@ -11,7 +11,7 @@ void encryptBinary(State state, FILE* inFp, FILE* outFp){
         }
     }
 }
-void decryptBinary(State state, FILE* inFp, FILE* outFp){
+void decryptBinary(Grain_state state, FILE* inFp, FILE* outFp){
     char next;
     char decodedCharacter = 0;
     int bitNum = 0;
@@ -28,7 +28,7 @@ void decryptBinary(State state, FILE* inFp, FILE* outFp){
     }
 }
 /* UNTESTED
-void encryptHex(int streamLength, State state, char* plainText, FILE* fp){
+void encryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp){
     for (int i = 0; plainText[i] != EOF; i++) {
         int bin1 = 0;
         int bin2 = 0;
@@ -42,7 +42,7 @@ void encryptHex(int streamLength, State state, char* plainText, FILE* fp){
         fputc(binToHex(bin2), fp);
     }
 }
-void decryptHex(int streamLength, State state, char* plainText, FILE* fp){
+void decryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp){
     for (int i = 0; plainText[i] != EOF; i+=2) {
         char decodedCharacter = 'a';
         for(int hex=0; hex<2;hex++){

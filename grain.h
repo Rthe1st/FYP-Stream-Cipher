@@ -3,14 +3,12 @@
 
 #include <stdint.h>
 
-typedef struct State{
+#include "cipher_helpers.h"
+
+typedef struct Grain_state {
     uint64_t* lfsr;
     uint64_t* nlfsr;
-} State;
-
-extern const int KEY_LENGTH;
-
-extern const int IV_LENGTH;
+} Grain_state;
 
 extern const int LFSR_LENGTH;
 
@@ -20,15 +18,17 @@ extern const int INT64_IN_KEY;//KEY_LENGTH/64
 
 extern const int INT64_IN_IV;//IV_LENGTH/64
 
-extern const int INIT_CLOCKS;
+extern const int GRAIN_FULL_INIT_CLOCKS;
+
+Cipher_info* grain_info();
 
 void set_bit(uint64_t * const bits, const int bit_value, int bit_index);
 
 int get_bit(const uint64_t *const bits, const int bit_index);
 
-void initialisation_clock(State* state);
+void initialisation_clock(Grain_state * state);
 
-int production_clock(State* state);
+int production_clock(Grain_state * state);
 
 void updateSRState(uint64_t *shiftRegister, int newBit);
 
@@ -40,10 +40,8 @@ int h(const uint64_t * const lfsr, const uint64_t * const nlfsr);
 
 int preOutput(const int hBit, const uint64_t * const lfsr, const uint64_t * const nlfsr);
 
-void initAndClock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key);
+void grainInitAndClock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key, int initClocks);
 
-void printState(const uint64_t * const state);
-
-State setupGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number);
+Grain_state setupGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number);
 
 #endif

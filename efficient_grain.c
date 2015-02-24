@@ -13,7 +13,7 @@ int and_bits(const uint64_t sum_powers_of_2, const uint64_t bits){
 //register[0] is [63] = 2^63, [62] = 2^62... [0] = 2^0
 //register[1] is 2^128^....2^64
 
-void efficientInitialisationClock(State* state){
+void efficientInitialisationClock(Grain_state * state){
     int hBit = efficientH(state->lfsr, state->nlfsr);
     int keyBit = efficientPreOutput(hBit, state->lfsr, state->nlfsr);
     int linearFeedBack = efficientLinearFeedback(state->lfsr);
@@ -24,7 +24,7 @@ void efficientInitialisationClock(State* state){
     efficientUpdateSRState(state->nlfsr, nonLinearFeedback);
 }
 
-int efficientProductionClock(State* state) {
+int efficientProductionClock(Grain_state * state) {
     int hBit = efficientH(state->lfsr, state->nlfsr);
     int keyBit = efficientPreOutput(hBit, state->lfsr, state->nlfsr);
     int linearFeedBack = efficientLinearFeedback(state->lfsr);
@@ -33,9 +33,9 @@ int efficientProductionClock(State* state) {
     efficientUpdateSRState(state->nlfsr, nonLinearFeedback);
     debug_print("keybit: %d", keyBit);
     debug_print("lfsr state:\n");
-    printState(state->lfsr);
+    print_uint64_t_array(state->lfsr, 2);
     debug_print("nlfsr state:\n");
-    printState(state->nlfsr);
+    print_uint64_t_array(state->nlfsr, 2);
     return keyBit;
 }
 
@@ -92,16 +92,16 @@ int efficientPreOutput(const int h_bit, const uint64_t * const lfsr, const uint6
     );
 }
 
-State setupEfficentGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number){
+Grain_state setupEfficentGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number){
     const uint64_t DEFAULT_END_IV_BITS = 0x7fffffff00000000;
     uint64_t* iv_copy = malloc(2*sizeof(uint64_t));
     iv_copy[0] = iv[0]; iv_copy[1] = iv[1]|DEFAULT_END_IV_BITS;
     uint64_t *key_copy = malloc(2*sizeof(uint64_t));
     key_copy[0] = key[0]; key_copy[1] = key[1];
-    State state = {iv_copy, key_copy};
+    Grain_state state = {iv_copy, key_copy};
     debug_print("initial state: \n");
-    debug_print("lfsr state:\n"); printState(state.lfsr);
-    debug_print("nlfsr state:\n"); printState(state.nlfsr);
+    debug_print("lfsr state:\n"); print_uint64_t_array(state.lfsr, 2);
+    debug_print("nlfsr state:\n"); print_uint64_t_array(state.nlfsr, 2);
     debug_print("begin clocking\n");
     for(int i = 0; i < clock_number; i++) {
         debug_print("clock number %d\n", i);
@@ -112,14 +112,14 @@ State setupEfficentGrain(const uint64_t * const iv, const uint64_t * const key, 
 }
 
 void efficientInitAndClock(int * const output, const size_t outputSize, const uint64_t * const iv, const uint64_t * const key){
-    State state = setupEfficentGrain(iv, key, INIT_CLOCKS);
-    int outputIndex = 0;
-    for(int i = 0; i < outputSize; i++) {
-        output[i] = 0;
-        for(int bitNo=3; bitNo>=0; bitNo--){
-            int keyBit = efficientProductionClock(&state);
-            output[outputIndex] =  output[outputIndex] | (keyBit << bitNo);
+    Grain_state state = setupEfficentGrain(iv, key, GRAIN_FULL_INIT_CLOCKS);
+    for(int i=0; i<outputSize; i++){
+        int outputIndex = i/4;
+        if (i%4 == 0) {
+            output[outputIndex] = 0;
         }
-        outputIndex++;
+        int keyBit = production_clock(&state);
+        debug_print("clock number %d\n", i);
+        output[outputIndex] = (((unsigned)output[outputIndex]) << 1) | keyBit;
     }
 }

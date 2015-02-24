@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include "grain.h"
 
-void encryptBinary(State state, FILE* inFp, FILE* outFp);
-void decryptBinary(State state, FILE* inFp, FILE* outFp);
-//void encryptHex(int streamLength, State state, char* plainText, FILE* fp);
-//void decryptHex(int streamLength, State state, char* plainText, FILE* fp);
+void encryptBinary(Grain_state state, FILE* inFp, FILE* outFp);
+void decryptBinary(Grain_state state, FILE* inFp, FILE* outFp);
+//void encryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp);
+//void decryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp);
 #endif
