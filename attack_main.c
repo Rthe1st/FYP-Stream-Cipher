@@ -15,13 +15,12 @@ int main(int argc, char **argv) {
     }*/
     srand((unsigned int) time(NULL));
     printf("finding max terms\n");
-    //passing the int* is so hacky, find a better way to get returned array length
     Max_terms_list *max_terms_list;
-    if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
+    //if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
 
-    }else{
-        max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT);
-    }
+    //}else{
+        max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, grain_info());
+    //}
     char *file_out_path = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\max_terms.txt";
     print_max_terms(max_terms_list, file_out_path);
     return EXIT_SUCCESS;
@@ -37,7 +36,7 @@ void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath){
         uint64_t *iv = current_max_term.iv;
         printf("iv pre file print: ");
         printBits(4 * 2, iv);
-        for (int bit_index = 0; bit_index < IV_LENGTH; bit_index++) {
+        for (int bit_index = 0; bit_index < cipher_info->iv_size; bit_index++) {
             fputc('0' + get_bit(iv, bit_index), outFp);
         }
         fputc('\n', outFp);
