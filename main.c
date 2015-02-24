@@ -61,7 +61,7 @@ void runGrain(int argc, char *argv[]) {
         int index = 1-(i%(64/4));
         bin_key[index] = bin_key[index] << 4 | bin[i];
     }
-    State state = setupGrain(bin_iv, bin_key, 256);
+    Grain_state state = setupGrain(bin_iv, bin_key, GRAIN_FULL_INIT_CLOCKS);
     //file io defaults
     if(encrypt == 1){
         if(!fileInPath) {
