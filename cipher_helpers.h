@@ -8,6 +8,7 @@ typedef void (*init_and_clock)(int *const, const size_t, const uint64_t *const, 
 typedef struct Cipher_info{
     int key_size;
     int iv_size;
+    int init_clocks;
     init_and_clock run_cipher;
 } Cipher_info;
 

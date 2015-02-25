@@ -4,7 +4,6 @@
 #ifndef CUBE_ATTACK_H
 #define CUBE_ATTACK_H
 
-extern const int SETUP_CLOCK_ROUNDS;
 extern const int MAX_TERM_LIMIT;
 extern const int DIMENSION_LIMIT;
 extern Cipher_info* cipher_info;

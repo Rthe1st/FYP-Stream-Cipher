@@ -1,12 +1,11 @@
 #include<stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
-#include <dxgi.h>
-#include <msxml2.h>
 
 #include "useful.h"
 #include "grain.h"
 #include "cipher_helpers.h"
+#include "cube_attack.h"
 
 const int LFSR_LENGTH = 128;
 
@@ -22,6 +21,7 @@ Cipher_info *grain_info() {
     Cipher_info *cipher_info = malloc(sizeof(*cipher_info));
     cipher_info->key_size = 128;
     cipher_info->iv_size = 96;
+    cipher_info->init_clocks = 256;
     cipher_info->run_cipher = &grainInitAndClock;
     return cipher_info;
 }

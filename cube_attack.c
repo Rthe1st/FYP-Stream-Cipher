@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <dxgi.h>
 
 #include "cube_attack.h"
 #include "useful.h"
@@ -18,7 +19,6 @@
 //8) Online, find super poly value for each IV with a linear super poly.
 //9) solve linear equations
 
-const int SETUP_CLOCK_ROUNDS = 10;
 const int MAX_TERM_LIMIT = 2;
 const int DIMENSION_LIMIT = 2;
 
@@ -37,7 +37,7 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension) {
         uint64_t *key1 = generate_key(cipher_info->key_size);
         uint64_t *key2 = generate_key(cipher_info->key_size);
         uint64_t combined_keys[] = {key1[0] ^ key2[0], key1[1] ^ key2[1]};
-        int summed_after = get_super_poly_bit(key1, cube_axes, cube_dimension) ^get_super_poly_bit(key2, cube_axes, cube_dimension);
+        int summed_after = get_super_poly_bit(key1, cube_axes, cube_dimension) ^ get_super_poly_bit(key2, cube_axes, cube_dimension);
         int summed_before = get_super_poly_bit(combined_keys, cube_axes, cube_dimension) ^zeroed_key_poly;
         free(key1);
         free(key2);
@@ -85,8 +85,7 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, Ciphe
     int *dimensions = calloc(dimension_limit, sizeof(int));
     int *dimension_count = malloc(sizeof(int)); *dimension_count = 1;
     Max_terms_list *max_terms_list = malloc(sizeof(Max_terms_list));
-    //max_terms_list->max_terms = malloc(sizeof(max_terms_list));
-    max_terms_list->max_terms = malloc(sizeof(size_t));
+    max_terms_list->max_terms = malloc(sizeof(Max_term));
     max_terms_list->max_term_count = 0;
     while (max_terms_list->max_term_count < max_term_limit && *dimension_count < dimension_limit) {
         if (is_super_poly_linear(dimensions, *dimension_count)) {
@@ -96,7 +95,7 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, Ciphe
                 //(max_terms_list->max_term_count)++;
                 max_terms_list->max_term_count++;
                 //todo: use size doubling buffer to save reallocing too much
-                max_terms_list->max_terms = realloc(max_terms_list->max_terms, max_terms_list->max_term_count);
+                max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term)*max_terms_list->max_term_count);
                 max_terms_list->max_terms[max_terms_list->max_term_count-1] = *potential_max_term;
             }
         }
@@ -141,11 +140,10 @@ int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension) {
         debug_print("next mask: %"PRIu64"\n", current_mask);
         uint64_t *current_iv = iv_from_mask(current_mask, iv_cube_axes, cube_dimension, cipher_info->iv_size);
         int output[1] = {0};
-        //grainInitAndClock(output, 1, current_iv, key, SETUP_CLOCK_ROUNDS);
-        cipher_info->run_cipher(output, 1, current_iv, key, SETUP_CLOCK_ROUNDS);
+        cipher_info->run_cipher(output, 1, current_iv, key, cipher_info->init_clocks);
         super_poly_bit = super_poly_bit ^ output[0];
         debug_print("superbit: %d for iv:\n", output[0]);
-        print_uint64_t_array(current_iv, 2);
+        print_uint64_t_array(current_iv, cipher_info->iv_size/64);
     }
     return super_poly_bit;
 }
