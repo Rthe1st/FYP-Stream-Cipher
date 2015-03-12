@@ -7,14 +7,6 @@
 #include "cipher_helpers.h"
 #include "cube_attack.h"
 
-const int LFSR_LENGTH = 128;
-
-const int NFSR_LENGTH = 128;
-
-const int INT64_IN_KEY = 2;//KEY_LENGTH/64
-
-const int INT64_IN_IV = 2;//IV_LENGTH/64
-
 const int GRAIN_FULL_INIT_CLOCKS = 256;
 
 Cipher_info *grain_info() {
