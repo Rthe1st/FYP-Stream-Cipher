@@ -9,9 +9,7 @@
 #include "grain.h"
 #include "dummy_cipher.h"
 
-int tests_run = 0;
-
-char *test_increase_dimensions(){
+static int test_increase_dimensions(){
     int *dimension_count = malloc(sizeof(int));
     int *dimensions = malloc(sizeof(int)*cipher_info->iv_size);
     dimensions[0] = 1;
@@ -34,17 +32,18 @@ char *test_increase_dimensions(){
     return 0;
 }
 
-char *test_get_super_poly_bit_case(uint64_t **ivs, uint64_t ivs_size, uint64_t *key, int *axises, int cube_dimension){
+static int test_get_super_poly_bit_case(uint64_t **ivs, uint64_t ivs_size, uint64_t *key, int *axises, int cube_dimension){
+    Cipher_info* grain_infos = grain_info();
     printf("testing get_super_poly_bit\n");
     printf("axises: ");
     for(int i=0;i<cube_dimension;i++){
         printf("%d, ", axises[i]);
     }
     printf("\n");
-    debug_print("ivs_size: %"PRIu64"\n", ivs_size);
+    debug_print("ivs_size: %d\n", cipher_info->iv_size);
     int correct_super_bit = 0;
     for(int i=0;i<ivs_size;i++){
-        Grain_state state = setupGrain(ivs[i], key, cipher_info->init_clocks);
+        Grain_state state = setupGrain(ivs[i], key, grain_infos->init_clocks);
         int next_super_bit = production_clock(&state);
         correct_super_bit = correct_super_bit ^ next_super_bit;
         printf("correct iv %d superbit: %d iv:\n", i, next_super_bit);
@@ -74,8 +73,8 @@ uint64_t malloc_ivs_and_axises(uint64_t ***ivs, int cube_dimension, int **axises
     return number_ivs;
 }
 
-static char *test_get_super_poly_bit() {
-    char *return_value = 0;
+static int test_get_super_poly_bit() {
+    int return_value = 0;
     uint64_t key[2] = {0,0};//tests should work with w/e key
     //setup
     int cube_dimension;
@@ -142,7 +141,7 @@ static char *test_get_super_poly_bit() {
     return 0;
 }
 
-static char* test_get_super_poly_bit_dummy_cipher(){
+static int test_get_super_poly_bit_dummy_cipher(){
     printf("testing get_super_poly_bit with dummy cipher\n");
     cipher_info = dummy_info();
     uint64_t key[1] = {0};
@@ -198,7 +197,7 @@ static char* test_get_super_poly_bit_dummy_cipher(){
     return 0;
 }
 
-static char* test_construct_max_term(){
+static int test_construct_max_term(){
     printf("testing construct_max_terms with dummy cipher\n");
     //0 clock + 1 for output
     //checking linear terms are found
@@ -224,7 +223,7 @@ static char* test_construct_max_term(){
     return 0;
 }
 
-static char* test_is_super_poly_linear(){
+static int test_is_super_poly_linear(){
     printf("testing is_superpoly_linear with dummy cipher\n");
     //0 clocks + output bit
     cipher_info->init_clocks = 0;
@@ -242,7 +241,7 @@ static char* test_is_super_poly_linear(){
     return 0;
 }
 
-static char* test_find_max_terms(){
+static int test_find_max_terms(){
     printf("testing find_max_terms\n");
     size_t dimension_limit = 5;
     int max_term_limit = 5;//set arbitrarily high because we can afford find all max_terms (2^5 iv combinations)
@@ -279,27 +278,9 @@ static char* test_find_max_terms(){
     return 0;
 }
 
-static char *cube_attack_tests() {
-    cipher_info = grain_info();
-    mu_run_test(test_increase_dimensions);
-    mu_run_test(test_get_super_poly_bit);
-    mu_run_test(test_get_super_poly_bit_dummy_cipher);
-    mu_run_test(test_construct_max_term);
-    mu_run_test(test_is_super_poly_linear);
-    mu_run_test(test_find_max_terms);
-    return 0;
-}
-
 int main(int argc, char **argv) {
-    srand(time(NULL));
-    char *result = cube_attack_tests();
-    if (result != 0) {
-        printf("%s\n", result);
-    }
-    else {
-        printf("ALL TESTS PASSED\n");
-    }
-    printf("Tests run: %d\n", tests_run);
-
-    return result != 0;
+    cipher_info = dummy_info();
+    test_case test_cases[6] = {test_increase_dimensions, test_get_super_poly_bit, test_get_super_poly_bit_dummy_cipher, test_construct_max_term,
+                                test_is_super_poly_linear, test_find_max_terms};
+    run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }

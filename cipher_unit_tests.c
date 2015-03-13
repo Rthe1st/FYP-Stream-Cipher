@@ -11,7 +11,7 @@
 
 int tests_run = 0;
 
-static char *testSetBit() {
+static int testSetBit() {
     uint64_t testBits[2] = {0, 0};
     set_bit(testBits, 1, 0);
     mu_assert("setBit error, setting index 0 to 1", testBits[0] == 1);
@@ -60,7 +60,7 @@ static char *testSetBit() {
     return 0;
 }
 
-static char *testGetBit() {
+static int testGetBit() {
     uint64_t testBits[2] = {0, 0};
     int fetchedBit = get_bit(testBits, 0);
     mu_assert("getBit error, getting bit index 0, expected 0", fetchedBit == 0);
@@ -109,7 +109,7 @@ static int testVector(uint8_t *expectedOutput, uint64_t *key, uint64_t *iv, int 
     return 1;
 }
 
-static char *testGrain() {
+static int testGrain() {
     //key:        00000000000000000000000000000000
     //IV :        000000000000000000000000
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
@@ -133,7 +133,7 @@ static char *testGrain() {
     return 0;
 }
 
-static char *testEfficientGrain() {
+static int testEfficientGrain() {
     //key:        00000000000000000000000000000000
     //IV :        000000000000000000000000
     //keystream:  c0207f221660650b6a952ae26586136fa0904140c8621cfe8660c0dec0969e9436f4ace92cf1ebb7
@@ -181,7 +181,7 @@ static char *testEfficientGrain() {
     return 0;
 }
 
-static char *testLinearFeedback() {
+static int testLinearFeedback() {
     uint64_t lfsr[2] = {0, 0};
     mu_assert("linear feedback failed for all 0", linearFeedback(lfsr) == 0);
     lfsr[0] = 0xffffffffffffffff;
@@ -199,7 +199,7 @@ static char *testLinearFeedback() {
     return 0;
 }
 
-static char *testEfficientLinearFeedback() {
+static int testEfficientLinearFeedback() {
     uint64_t lfsr[2] = {0, 0};
     printf("testing for lfsr[0] %"PRIu64" lfsr[1] %"PRIu64"\n", lfsr[0], lfsr[1]);
     int lf = linearFeedback(lfsr);
@@ -237,7 +237,7 @@ static char *testEfficientLinearFeedback() {
     return 0;
 }
 
-static char *testEfficientNonLinearFeedback() {
+static int testEfficientNonLinearFeedback() {
     uint64_t lfsr[2];
     uint64_t nlfsr[2];
     clock_t eNonTime = 0, nonTime = 0;
@@ -271,7 +271,7 @@ static char *testEfficientNonLinearFeedback() {
     return 0;
 }
 
-static char *testPreoutput() {
+static int testPreoutput() {
     uint64_t lfsr[2] = {0,0};
     uint64_t nlfsr[2] = {0,0};
     int hBit = 0;
@@ -303,7 +303,7 @@ static char *testPreoutput() {
     return 0;
 }
 
-static char *testEfficientPreOutput() {
+static int testEfficientPreOutput() {
     uint64_t lfsr[2] = {0, 0};
     uint64_t nlfsr[2] = {0, 0};
     int h_bit = 0;
@@ -346,29 +346,9 @@ static char *testEfficientPreOutput() {
     return 0;
 }
 
-static char *all_tests() {
-    mu_run_test(testSetBit);
-    mu_run_test(testGetBit);
-    mu_run_test(testLinearFeedback);
-    mu_run_test(testEfficientLinearFeedback);
-    mu_run_test(testEfficientNonLinearFeedback);
-    mu_run_test(testPreoutput);
-    mu_run_test(testEfficientPreOutput);
-    mu_run_test(testGrain);
-    mu_run_test(testEfficientGrain);
-    return 0;
-}
-
 int main(int argc, char **argv) {
     srand(time(NULL));
-    char *result = all_tests();
-    if (result != 0) {
-        printf("%s\n", result);
-    }
-    else {
-        printf("ALL TESTS PASSED\n");
-    }
-    printf("Tests run: %d\n", tests_run);
-
-    return result != 0;
+    test_case test_cases[9] = {testSetBit, testGetBit, testLinearFeedback, testEfficientLinearFeedback, testEfficientNonLinearFeedback,
+    testPreoutput, testEfficientPreOutput, testGrain, testEfficientGrain};
+    run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }
