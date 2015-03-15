@@ -6,7 +6,6 @@
 
 extern const int MAX_TERM_LIMIT;
 extern const int DIMENSION_LIMIT;
-extern Cipher_info* cipher_info;
 
 typedef struct Max_term{
     uint64_t* iv;//make sure these are unsigned
@@ -20,14 +19,14 @@ typedef struct Max_terms_list {
     int max_term_count;
 } Max_terms_list;
 
-void increase_dimensions(int *dimensions, int *dimension_count);
+void increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info * const cipher_info);
 
-int is_super_poly_linear(int *cube_axes, int cube_dimension);
+int is_super_poly_linear(int *cube_axes, int cube_dimension, const Cipher_info * const cipher_info);
 
-Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, Cipher_info* t_cipher_info);
+Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const Cipher_info * const cipher_info);
 
-Max_term *construct_max_term(int *cube_axes, int cube_dimensions);
+Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_info * const cipher_info);
 
-int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension);
+int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, const Cipher_info * const cipher_info);
 
 #endif

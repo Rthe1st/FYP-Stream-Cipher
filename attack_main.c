@@ -16,17 +16,18 @@ int main(int argc, char **argv) {
     srand((unsigned int) time(NULL));
     printf("finding max terms\n");
     Max_terms_list *max_terms_list;
+    Cipher_info * cipher_info = grain_info();
     //if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
 
     //}else{
-        max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, grain_info());
+        max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, cipher_info);
     //}
     char *file_out_path = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\max_terms.txt";
-    print_max_terms(max_terms_list, file_out_path);
+    print_max_terms(max_terms_list, file_out_path, cipher_info);
     return EXIT_SUCCESS;
 };
 
-void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath){
+void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath, const Cipher_info * const cipher_info){
     FILE *outFp = fopen(fileOutPath, "w+");
     printf("number of maxterms found: %d\n", max_terms_list->max_term_count);
     fputs("notes all terms form a linear equations (i.e. only maxTerms are found)\n", outFp);

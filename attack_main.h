@@ -3,6 +3,6 @@
 
 #include "cube_attack.h"
 
-void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath);
+void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath, const Cipher_info * const cipher_info);
 
 #endif

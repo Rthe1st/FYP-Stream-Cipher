@@ -10,11 +10,12 @@
 #include "dummy_cipher.h"
 
 static int test_increase_dimensions(){
+    Cipher_info * cipher_info = grain_info();
     int *dimension_count = malloc(sizeof(int));
     int *dimensions = malloc(sizeof(int)*cipher_info->iv_size);
     dimensions[0] = 1;
     *dimension_count = 1;
-    increase_dimensions(dimensions, dimension_count);
+    increase_dimensions(dimensions, dimension_count, cipher_info);
     for(int i=0;i<*dimension_count;i++){
         printf("dimensions[%d] = %d\n", i, dimensions[i]);
     }
@@ -22,7 +23,7 @@ static int test_increase_dimensions(){
     mu_assert("increase_dimension failed, dimensions[0] == 2 && dimension_count == 1", dimensions[0] == 2 && *dimension_count == 1);
     *dimension_count = 2;
     dimensions[0] = 94; dimensions[1] = 95;
-    increase_dimensions(dimensions, dimension_count);
+    increase_dimensions(dimensions, dimension_count, cipher_info);
     for(int i=0;i<*dimension_count;i++){
         printf("dimensions[%d] = %d\n", i, dimensions[i]);
     }
@@ -33,7 +34,7 @@ static int test_increase_dimensions(){
 }
 
 static int test_get_super_poly_bit_case(uint64_t **ivs, uint64_t ivs_size, uint64_t *key, int *axises, int cube_dimension){
-    Cipher_info* grain_infos = grain_info();
+    Cipher_info* cipher_info = grain_info();
     printf("testing get_super_poly_bit\n");
     printf("axises: ");
     for(int i=0;i<cube_dimension;i++){
@@ -43,13 +44,13 @@ static int test_get_super_poly_bit_case(uint64_t **ivs, uint64_t ivs_size, uint6
     debug_print("ivs_size: %d\n", cipher_info->iv_size);
     int correct_super_bit = 0;
     for(int i=0;i<ivs_size;i++){
-        Grain_state state = setupGrain(ivs[i], key, grain_infos->init_clocks);
+        Grain_state state = setupGrain(ivs[i], key, cipher_info->init_clocks);
         int next_super_bit = production_clock(&state);
         correct_super_bit = correct_super_bit ^ next_super_bit;
         printf("correct iv %d superbit: %d iv:\n", i, next_super_bit);
         print_uint64_t_array(ivs[i], cipher_info->iv_size/64);
     }
-    int actual_super_bit = get_super_poly_bit(key, axises, cube_dimension);
+    int actual_super_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     printf("correct super bit: %d, actual super bit: %d\n", correct_super_bit, actual_super_bit);
     mu_assert("get_super_poly_bit is wrong", correct_super_bit == actual_super_bit);
     return 0;
@@ -129,10 +130,6 @@ static int test_get_super_poly_bit() {
     ivs[5][0] = power(2, 0);ivs[5][1] = power(2, 127-64);
     ivs[6][0] = 0;          ivs[6][1] = power(2, 65-64)+power(2, 127-64);
     ivs[7][0] = power(2, 0);ivs[7][1] = power(2, 65-64)+power(2, 127-64);
-    printf("pretest iv 0:");
-    print_uint64_t_array(ivs[0], cipher_info->iv_size/64);
-    printf("pretest iv 1");
-    print_uint64_t_array(ivs[1], cipher_info->iv_size/64);
     return_value = test_get_super_poly_bit_case(ivs, iv_count, key, axises, cube_dimension);
     if(return_value != 0){return return_value;};
     //----
@@ -143,7 +140,7 @@ static int test_get_super_poly_bit() {
 
 static int test_get_super_poly_bit_dummy_cipher(){
     printf("testing get_super_poly_bit with dummy cipher\n");
-    cipher_info = dummy_info();
+    Cipher_info * cipher_info = dummy_info();
     uint64_t key[1] = {0};
     int axises[5] = {0,0,0,0,0};
     int cube_dimension;
@@ -153,21 +150,21 @@ static int test_get_super_poly_bit_dummy_cipher(){
     key[0] = 0;
     axises[0] = 0;
     cube_dimension = 1;
-    int super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    int super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clock, key 00000 iv 00001, superpoly bit != key[0]", super_poly_bit == 0);
     key[0] = 1;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clock, key 00001 iv 00001, superpoly bit != key[0]", super_poly_bit == 1);
     //check a constant is returned for too many axises
     key[0] = 0;
     axises[0] = 0; axises[1] = 1;
     cube_dimension = 2;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clock, key 00000 iv 00011, superpoly bit != free term", super_poly_bit == 0);
     key[0] = power(2, 5)-1;
     axises[0] = 0; axises[1] = 1;
     cube_dimension = 2;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clock, key 11111 iv 00011, superpoly bit != free term", super_poly_bit == 0);
     //5 clocks + 1 for output
     cipher_info->init_clocks = 5;
@@ -175,29 +172,30 @@ static int test_get_super_poly_bit_dummy_cipher(){
     key[0] = power(2,5)-2;//0b11110
     axises[0] = 0; axises[1] = 1; axises[2] = 2;
     cube_dimension = 3;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 5 clocks, key 11110 iv 00111, superpoly bit != key[0]", super_poly_bit == 0);
     key[0] = 21;//0b10101
     axises[0] = 0; axises[1] = 1; axises[2] = 2;
     cube_dimension = 3;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 5 clocks, key 10101 iv 00111, superpoly bit != key[0]", super_poly_bit == 1);
     //checking non-linear super polys are correct
     key[0] = power(2, 5)-1;
     axises[0] = 0; axises[1] = 1;
     cube_dimension = 2;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 5 clocks, key 11111 iv 00011, superpoly bit != (KEY[0]&KEY[1])", super_poly_bit == 1);
     key[0] = power(2, 5) - 2;
     axises[0] = 0; axises[1] = 1;
     cube_dimension = 2;
-    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension);
+    super_poly_bit = get_super_poly_bit(key, axises, cube_dimension, cipher_info);
     mu_assert("failed for 5 clocks, key 10111 iv 00011, superpoly bit != (KEY[1]&KEY[2])^KEY[3]", super_poly_bit == 0);
     printf("done testing get_super_poly_bit with dummy cipher\n");
     return 0;
 }
 
 static int test_construct_max_term(){
+    Cipher_info * cipher_info = dummy_info();
     printf("testing construct_max_terms with dummy cipher\n");
     //0 clock + 1 for output
     //checking linear terms are found
@@ -206,18 +204,18 @@ static int test_construct_max_term(){
     int cube_dimension;
     cube_dimension = 1;
     axises[0] = 0;
-    Max_term* terms = construct_max_term(axises, cube_dimension);
+    Max_term* terms = construct_max_term(axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clocks, iv 00001 should gives terms: key[0]", terms->numberOfTerms == 1 && terms->terms[0] == 0 && terms->plusOne == 0);
     cube_dimension = 5;
     axises[0] = 1; axises[1] = 2;axises[2] = 3;axises[3] = 4;axises[4] = 5;
-    terms = construct_max_term(axises, cube_dimension);
+    terms = construct_max_term(axises, cube_dimension, cipher_info);
     mu_assert("failed for 0 clocks, iv 01111100 should gives terms: none", terms->numberOfTerms == 0 && terms->plusOne == 0);
     //5 clocks + 1 for output
     //checking non-linear terms are discarded
     cipher_info->init_clocks = 5;
     cube_dimension = 1;
     axises[0] = 1;
-    terms = construct_max_term(axises, cube_dimension);
+    terms = construct_max_term(axises, cube_dimension, cipher_info);
     mu_assert("failed for 8 clocks, iv 00010 should gives terms: key[1]", terms->numberOfTerms == 1 && terms->terms[0] == 1 && terms->plusOne == 0);
     printf("done testing construct_max_terms with dummy cipher\n");
     return 0;
@@ -225,18 +223,19 @@ static int test_construct_max_term(){
 
 static int test_is_super_poly_linear(){
     printf("testing is_superpoly_linear with dummy cipher\n");
+    Cipher_info * cipher_info = dummy_info();
     //0 clocks + output bit
     cipher_info->init_clocks = 0;
     int axises[5] = {0,0,0,0,0};
     int cube_dimension;
     cube_dimension = 1;
     axises[0] = 0;
-    mu_assert("failed 0 clocks for iv 00001, should be linear", is_super_poly_linear(axises, cube_dimension));
+    mu_assert("failed 0 clocks for iv 00001, should be linear", is_super_poly_linear(axises, cube_dimension, cipher_info));
     //5 clocks + output bit
     cipher_info->init_clocks = 5;
     cube_dimension = 1;
     axises[0] = 2;
-    mu_assert("failed 0 clocks for iv 00100, should be non-linear", !is_super_poly_linear(axises, cube_dimension));
+    mu_assert("failed 0 clocks for iv 00100, should be non-linear", !is_super_poly_linear(axises, cube_dimension, cipher_info));
     printf("done testing is_super_poly_linear\n");
     return 0;
 }
@@ -279,7 +278,6 @@ static int test_find_max_terms(){
 }
 
 int main(int argc, char **argv) {
-    cipher_info = dummy_info();
     test_case test_cases[6] = {test_increase_dimensions, test_get_super_poly_bit, test_get_super_poly_bit_dummy_cipher, test_construct_max_term,
                                 test_is_super_poly_linear, test_find_max_terms};
     run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
