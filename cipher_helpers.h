@@ -1,6 +1,8 @@
 #ifndef CIPHER_HELPERS
 #define CIPHER_HELPERS
 
+#include <inttypes.h>
+
 //parameters: output, outputSiz, iv, key, initClocks
 typedef void (*init_and_clock)(int *const, const size_t, const uint64_t *const, const uint64_t *const, int);
 

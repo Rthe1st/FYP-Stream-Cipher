@@ -10,14 +10,6 @@ typedef struct Grain_state {
     uint64_t* nlfsr;
 } Grain_state;
 
-extern const int LFSR_LENGTH;
-
-extern const int NFSR_LENGTH;
-
-extern const int INT64_IN_KEY;//KEY_LENGTH/64
-
-extern const int INT64_IN_IV;//IV_LENGTH/64
-
 extern const int GRAIN_FULL_INIT_CLOCKS;
 
 Cipher_info* grain_info();
