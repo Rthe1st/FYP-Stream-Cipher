@@ -36,4 +36,6 @@ void grainInitAndClock(int *const output, const size_t outputSize, const uint64_
 
 Grain_state setupGrain(const uint64_t * const iv, const uint64_t * const key, const int clock_number);
 
+void freeGrainState(Grain_state * state);
+
 #endif

@@ -13,7 +13,7 @@ Cipher_info *grain_info() {
     Cipher_info *cipher_info = malloc(sizeof(*cipher_info));
     cipher_info->key_size = 128;
     cipher_info->iv_size = 96;
-    cipher_info->init_clocks = 256;
+    cipher_info->init_clocks = 5;
     cipher_info->run_cipher = &grainInitAndClock;
     return cipher_info;
 }
@@ -126,4 +126,10 @@ void grainInitAndClock(int *const output, const size_t outputSize, const uint64_
         debug_print("clock number %d\n", i);
         output[outputIndex] = (((unsigned)output[outputIndex]) << 1) | keyBit;
     }
+    freeGrainState(&state);
+}
+
+void freeGrainState(Grain_state * state){
+    free(state->lfsr);
+    free(state->nlfsr);
 }

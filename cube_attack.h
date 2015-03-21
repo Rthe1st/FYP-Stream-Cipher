@@ -27,6 +27,8 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const
 
 Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_info * const cipher_info);
 
+void free_max_term(Max_term * max_term);
+
 int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, const Cipher_info * const cipher_info);
 
 #endif
