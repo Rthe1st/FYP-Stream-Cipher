@@ -17,26 +17,38 @@ static int test_mobius_construct_max_terms(){
     int dimensions[10] = {0};
     uint64_t zeroed_key[1] = {0};
     cipher_info->init_clocks = 0;
-    int *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, dimension_limit, zeroed_key, cipher_info);
+    int *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, 0, zeroed_key, cipher_info);
     Max_terms_list* cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-    mu_assert("1 clock, maxterm count != 1\n", cube_max_terms->max_term_count == 2);
+    mu_assert("1 clock, maxterm count of %d != 2\n", cube_max_terms->max_term_count == 2, cube_max_terms->max_term_count);
     Max_term chosen_max_term = cube_max_terms->max_terms[0];
-    mu_assert("1 clock, maxterm[0], num terms == %d instead of 1\n", chosen_max_term.numberOfTerms == 1, chosen_max_term.numberOfTerms);
-    mu_assert("1 clock, maxterm[0], terms[0] != 0\n", chosen_max_term.terms[0] == 0);
+    printf("max term[0] term[0] == %d plus one %d\n",chosen_max_term.terms[0], chosen_max_term.plusOne);
+    mu_assert("1 clock, maxterm[0], num terms == %d instead of 0\n", chosen_max_term.numberOfTerms == 3, chosen_max_term.numberOfTerms);
     mu_assert("1 clock, maxterm[0], plusone != 0\n", chosen_max_term.plusOne == 0);
+    chosen_max_term = cube_max_terms->max_terms[1];
+    mu_assert("1 clock, maxterm[1], num terms == %d instead of 1\n", chosen_max_term.numberOfTerms == 1, chosen_max_term.numberOfTerms);
+    mu_assert("1 clock, maxterm[1], terms[0] != 0\n", chosen_max_term.terms[0] == 0);
+    mu_assert("1 clock, maxterm[1], plusone != 0\n", chosen_max_term.plusOne == 0);
+    for(int i=0;i<cube_max_terms->max_term_count;i++){
+        free_max_term(&(cube_max_terms->max_terms[i]));
+    }
+    free(cube_max_terms);
     dimension_limit = 3;
-    dimensions[0] = 1; dimensions[1] = 2; dimensions[2] = 3;
-    dimensions[0] = 1; dimensions[1] = 2; dimensions[2] = 3;
+    dimensions[0] = 0; dimensions[1] = 1; dimensions[2] = 2;
     cipher_info->init_clocks = 5;
+    cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
     mu_assert("6 clocks, max term count != 3\n", cube_max_terms->max_term_count == 8);
     chosen_max_term = cube_max_terms->max_terms[7];
     mu_assert("failed for 6 init clocks results[7](111) num terms != 1\n", chosen_max_term.numberOfTerms == 1);
-    mu_assert("failed for 6 init clocks results[7](111) term 1 != 0\n",chosen_max_term.terms[0] == 0);
+    mu_assert("failed for 6 init clocks results[7](111) term[1] == %d not 0\n",chosen_max_term.terms[0] == 0, chosen_max_term.terms[0]);
     chosen_max_term = cube_max_terms->max_terms[6];
     mu_assert("failed for 6 init clocks results[6](110) num of terms != 1\n", chosen_max_term.numberOfTerms == 1);
     mu_assert("failed for 6 init clocks results[6](110) term[0] != 3\n",chosen_max_term.terms[0] == 3);
     chosen_max_term = cube_max_terms->max_terms[3];
     mu_assert("failed for 6 init clocks results[3](11) num terms != 0\n", chosen_max_term.numberOfTerms == 0);
+    for(int i=0;i<cube_max_terms->max_term_count;i++){
+        free_max_term(&(cube_max_terms->max_terms[i]));
+    }
+    free(cube_max_terms);
     printf("done testing onstruct max terms\n");
     return 0;
 }

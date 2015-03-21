@@ -5,7 +5,7 @@
 #include "cube_attack.h"
 #include "useful.h"
 
-const int MIN_NUM_AXES = 4;
+const int MIN_NUM_AXES = 0;
 
 Max_terms_list *mobius_find_max_terms(int max_term_limit, size_t dimension_limit, const Cipher_info * const cipher_info) {
     int *dimensions = calloc(dimension_limit, sizeof(int));
@@ -115,12 +115,15 @@ Max_terms_list* mobius_construct_max_terms(int *zeroed_super_polys, int *dimensi
         term_key[0] = 0;
         term_key[1] = 0;
         set_bit(term_key, 1, key_bit);
+        printf("key bit %d\n", key_bit);
         int *key_super_poly = mobius_transform(dimensions, dimension_count, MIN_NUM_AXES, term_key, cipher_info);
         for (int g = 0; g < power(2, dimension_count); g++) {
-            Max_term current_max_term = max_terms_list->max_terms[g];
+            Max_term *current_max_term = &(max_terms_list->max_terms[g]);
+            printf("mobius super res: %d ", key_super_poly[g]);
+            printf("mobius zeroded: %d\n", zeroed_super_polys[g]);
             if (key_super_poly[g] + zeroed_super_polys[g] == 1) {
-                current_max_term.terms[max_terms_list->max_term_count] = key_bit;
-                current_max_term.numberOfTerms++;
+                current_max_term->terms[current_max_term->numberOfTerms] = key_bit;
+                current_max_term->numberOfTerms++;
             }
         }
     }
