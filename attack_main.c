@@ -5,25 +5,28 @@
 
 #include "attack_main.h"
 #include "cube_attack.h"
+#include "mobius_cube_attack.h"
 #include "useful.h"
 #include "grain.h"
 
 int main(int argc, char **argv) {
-    /*if(argc != 2){
-        printf("1 argument expected");
-        return EXIT_FAILURE;
-    }*/
     srand((unsigned int) time(NULL));
     printf("finding max terms\n");
     Max_terms_list *max_terms_list;
     Cipher_info * cipher_info = grain_info();
-    //if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
-
-    //}else{
+    cipher_info->init_clocks = 5;
+    if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
+        max_terms_list = mobius_find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, cipher_info);
+    }else{
         max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, cipher_info);
-    //}
+    }
     char *file_out_path = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\max_terms.txt";
     print_max_terms(max_terms_list, file_out_path, cipher_info);
+    free(cipher_info);
+    for(int i=0; i < max_terms_list->max_term_count; i++){
+        free_max_term(&(max_terms_list->max_terms[i]));
+    }
+    free(max_terms_list);
     return EXIT_SUCCESS;
 };
 

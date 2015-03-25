@@ -13,7 +13,7 @@ Cipher_info *grain_info() {
     Cipher_info *cipher_info = malloc(sizeof(*cipher_info));
     cipher_info->key_size = 128;
     cipher_info->iv_size = 96;
-    cipher_info->init_clocks = 5;
+    cipher_info->init_clocks = 256;
     cipher_info->run_cipher = &grainInitAndClock;
     return cipher_info;
 }
