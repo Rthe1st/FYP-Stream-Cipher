@@ -82,7 +82,7 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const
     int *dimensions = calloc(dimension_limit, sizeof(int));
     int dimension_count = 1;
     Max_terms_list *max_terms_list = malloc(sizeof(Max_terms_list));
-    max_terms_list->max_terms = malloc(sizeof(Max_term));
+    max_terms_list->max_terms = malloc(sizeof(Max_term*)*0);
     max_terms_list->max_term_count = 0;
     while (max_terms_list->max_term_count < max_term_limit && dimension_count < dimension_limit) {
         if (is_super_poly_linear(dimensions, dimension_count, cipher_info)){
@@ -92,8 +92,8 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const
                 //(max_terms_list->max_term_count)++;
                 max_terms_list->max_term_count++;
                 //todo: use size doubling buffer to save reallocing too much
-                max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term)*max_terms_list->max_term_count);
-                max_terms_list->max_terms[max_terms_list->max_term_count-1] = *potential_max_term;
+                max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term*)*max_terms_list->max_term_count);
+                max_terms_list->max_terms[max_terms_list->max_term_count-1] = potential_max_term;
                 printf("max term count: %d\n", max_terms_list->max_term_count);
             }else{
                 free_max_term(potential_max_term);
@@ -134,6 +134,11 @@ void free_max_term(Max_term * max_term){
     free(max_term->terms);
     free(max_term->iv);
     free(max_term);
+}
+
+void free_max_term_list(Max_terms_list * max_terms_list){
+    free(max_terms_list->max_terms);
+    free(max_terms_list);
 }
 
 int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, const Cipher_info * const cipher_info) {

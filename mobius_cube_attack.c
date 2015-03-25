@@ -22,30 +22,30 @@ Max_terms_list *mobius_find_max_terms(int max_term_limit, size_t dimension_limit
         Max_terms_list* cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
         for (int i = 0; i < cube_max_terms->max_term_count; i++) {
             printf("checking cube terms, overall max term count %d\n", max_terms_list->max_term_count);
-            Max_term current_max_term = cube_max_terms->max_terms[i];
+            Max_term* current_max_term = cube_max_terms->max_terms[i];
             int e=0;//commenting this out cause errors, whyyyyy
             //varibale name can be anything
-            if (current_max_term.numberOfTerms > 0 && linear_results[i] == 1) {
+            if (current_max_term->numberOfTerms > 0 && linear_results[i] == 1) {
                 max_terms_list->max_term_count++;
                 //todo: use size doubling buffer to save reallocing too much
                 max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term) * max_terms_list->max_term_count);
                 max_terms_list->max_terms[max_terms_list->max_term_count-1] = current_max_term;
             }else{
-                free_max_term(&current_max_term);
+                free_max_term(current_max_term);
             }
         }
         free(zeroed_key_poly);
         free(linear_results);
-        free(cube_max_terms);
+        free_max_term_list(cube_max_terms);
         //this wont search the dimensio space exhaustivly
         //because say cube {1,2,3} and {4,5,6} will be search but not {1,2,4}
         //to correct this, come up with a system for heuistly finding good cubes
         //or searching exhustivly and remebering past sub cubes for reuse
-
         for (int i = 0; i < dimension_limit; i++) {
             dimensions[i] += dimension_limit;
         }
     }
+    free(dimensions);
     printf("overall max term count %d\n", max_terms_list->max_term_count);
     return max_terms_list;
 }
@@ -113,7 +113,7 @@ Max_terms_list* mobius_construct_max_terms(int *zeroed_super_polys, int *dimensi
         max_term->terms = malloc(sizeof(int) * cipher_info->key_size);
         max_term->numberOfTerms = 0;
         max_term->plusOne = zeroed_super_polys[g];
-        max_terms_list->max_terms[g] = *max_term;
+        max_terms_list->max_terms[g] = max_term;
     }
     for (int key_bit = 0; key_bit < cipher_info->key_size; key_bit++) {
         //increase the key bit that's set to 1
@@ -122,12 +122,13 @@ Max_terms_list* mobius_construct_max_terms(int *zeroed_super_polys, int *dimensi
         set_bit(term_key, 1, key_bit);
         int *key_super_poly = mobius_transform(dimensions, dimension_count, MIN_NUM_AXES, term_key, cipher_info);
         for (int g = 0; g < power(2, dimension_count); g++) {
-            Max_term *current_max_term = &(max_terms_list->max_terms[g]);
+            Max_term *current_max_term = max_terms_list->max_terms[g];
             if (key_super_poly[g] + zeroed_super_polys[g] == 1) {
                 current_max_term->terms[current_max_term->numberOfTerms] = key_bit;
                 current_max_term->numberOfTerms++;
             }
         }
+        free(key_super_poly);
     }
     return max_terms_list;
 }

@@ -24,9 +24,9 @@ int main(int argc, char **argv) {
     print_max_terms(max_terms_list, file_out_path, cipher_info);
     free(cipher_info);
     for(int i=0; i < max_terms_list->max_term_count; i++){
-        free_max_term(&(max_terms_list->max_terms[i]));
+        free_max_term(max_terms_list->max_terms[i]);
     }
-    free(max_terms_list);
+    free_max_term_list(max_terms_list);
     return EXIT_SUCCESS;
 };
 
@@ -35,7 +35,7 @@ void print_max_terms(Max_terms_list *max_terms_list, char* fileOutPath, const Ci
     printf("number of maxterms found: %d\n", max_terms_list->max_term_count);
     fputs("notes all terms form a linear equations (i.e. only maxTerms are found)\n", outFp);
     for (int i = 0; i < max_terms_list->max_term_count; i++) {
-        Max_term current_max_term = max_terms_list->max_terms[i];
+        Max_term current_max_term = *(max_terms_list->max_terms[i]);
         fputs("iv: ", outFp);
         uint64_t *iv = current_max_term.iv;
         printf("iv pre file print: ");

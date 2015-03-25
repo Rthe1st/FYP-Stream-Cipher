@@ -15,7 +15,7 @@ typedef struct Max_term{
 } Max_term;
 
 typedef struct Max_terms_list {
-    Max_term *max_terms;
+    Max_term **max_terms;//array of pointers so its easier to free/retain individual max terms
     int max_term_count;
 } Max_terms_list;
 
@@ -28,6 +28,8 @@ Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const
 Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_info * const cipher_info);
 
 void free_max_term(Max_term * max_term);
+
+void free_max_term_list(Max_terms_list * max_terms_list);
 
 int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, const Cipher_info * const cipher_info);
 
