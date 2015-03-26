@@ -6,7 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Users/User/Documents/GitHub/FYP-Stream-Ci
 set(PRODUCTION_SOURCE_FILES main.c grain.c useful.c efficient_grain.c encoding.c cipher_helpers.c)
 add_executable(FYP_Stream_Cipher ${PRODUCTION_SOURCE_FILES})
 
-set(CUBE_ATTACK_SOURCE_FILES attack_main.c useful.c cube_attack.c grain.c cipher_helpers.c)
+set(CUBE_ATTACK_SOURCE_FILES attack_main.c useful.c cube_attack.c mobius_cube_attack.c grain.c cipher_helpers.c)
 add_executable(FYP_Stream_Cipher_Cube_Attack ${CUBE_ATTACK_SOURCE_FILES})
 
 set(UNIT_TEST_CUBE_ATTACK_SOURCE_FILES cube_attack_unit_tests.c cube_attack.c useful.c grain.c cipher_helpers.c dummy_cipher.c)
