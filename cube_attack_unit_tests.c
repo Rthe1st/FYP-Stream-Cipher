@@ -248,14 +248,14 @@ static int test_find_max_terms(){
     cipher_info->init_clocks = 0;
     Max_terms_list* max_terms_list = find_max_terms(max_term_limit, dimension_limit, cipher_info);
     mu_assert("failed for 0 clocks, max_term_count != 0", max_terms_list->max_term_count == 1);
-    Max_term max_term = max_terms_list->max_terms[0];
+    Max_term *max_term = max_terms_list->max_terms[0];
     for (int i = 0; i < max_terms_list->max_term_count; ++i) {
-        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i].numberOfTerms, max_terms_list->max_terms[i].plusOne);
-        for(int g=0;g<max_terms_list->max_terms[i].numberOfTerms;g++){
-            printf("term : %d\n", max_terms_list->max_terms[i].terms[0]);
+        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i]->numberOfTerms, max_terms_list->max_terms[i]->plusOne);
+        for(int g=0;g<max_terms_list->max_terms[i]->numberOfTerms;g++){
+            printf("term : %d\n", max_terms_list->max_terms[i]->terms[0]);
         }
     }
-    mu_assert("failed for 0 clocks first max term has wrong values", max_term.numberOfTerms == 1 && max_term.terms[0] == 0 && max_term.plusOne == 0);
+    mu_assert("failed for 0 clocks first max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 0 && max_term->plusOne == 0);
     free(max_terms_list);
     //testing for 5 clocks
     cipher_info->init_clocks = 5;
@@ -263,16 +263,16 @@ static int test_find_max_terms(){
     mu_assert("failed for 5 clocks, max_term_count != 3", max_terms_list->max_term_count == 3);
     max_term = max_terms_list->max_terms[0];
     for (int i = 0; i < max_terms_list->max_term_count; ++i) {
-        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i].numberOfTerms, max_terms_list->max_terms[i].plusOne);
-        for(int g=0;g<max_terms_list->max_terms[i].numberOfTerms;g++){
-            printf("term : %d\n", max_terms_list->max_terms[i].terms[0]);
+        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i]->numberOfTerms, max_terms_list->max_terms[i]->plusOne);
+        for(int g=0;g<max_terms_list->max_terms[i]->numberOfTerms;g++){
+            printf("term : %d\n", max_terms_list->max_terms[i]->terms[0]);
         }
     }
-    mu_assert("failed for 5 clocks 1st max term has wrong values", max_term.numberOfTerms == 1 && max_term.terms[0] == 3 && max_term.plusOne == 0);
+    mu_assert("failed for 5 clocks 1st max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 3 && max_term->plusOne == 0);
     max_term = max_terms_list->max_terms[1];
-    mu_assert("failed for 5 clocks 2nd max term has wrong values", max_term.numberOfTerms == 1 && max_term.terms[0] == 3 && max_term.plusOne == 0);
+    mu_assert("failed for 5 clocks 2nd max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 3 && max_term->plusOne == 0);
     max_term = max_terms_list->max_terms[2];
-    mu_assert("failed for 5 clocks 3rd max term has wrong values", max_term.numberOfTerms == 1 && max_term.terms[0] == 0 && max_term.plusOne == 0);
+    mu_assert("failed for 5 clocks 3rd max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 0 && max_term->plusOne == 0);
     printf("testing find_max_terms done\n");
     return 0;
 }
