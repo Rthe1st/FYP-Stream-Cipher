@@ -1,6 +1,7 @@
 .idea
 papers/
 spec_grain_128/
+bin/
 
 #latex ignores as nicked from https://gist.github.com/kogakure/149016
 *.aux

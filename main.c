@@ -65,16 +65,16 @@ void runGrain(int argc, char *argv[]) {
     //file io defaults
     if(encrypt == 1){
         if(!fileInPath) {
-            fileInPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\plain.txt";
+            fileInPath = ".\\plain.txt";
         }
         if(!fileOutPath) {
-            fileOutPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\cipher.txt";
+            fileOutPath = ".\\cipher.txt";
         }
     }else{
         if(!fileInPath)
-            fileInPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\cipher.txt";
+            fileInPath = ".\\cipher.txt";
         if(!fileOutPath)
-            fileOutPath = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\plain.txt";
+            fileOutPath = ".\\plain.txt";
     }
     FILE* inFp = fopen(fileInPath, "r");
     FILE* outFp = fopen(fileOutPath, "w+");

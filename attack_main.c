@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     }else{
         max_terms_list = find_max_terms(MAX_TERM_LIMIT, DIMENSION_LIMIT, cipher_info);
     }
-    char *file_out_path = "C:\\Users\\User\\Documents\\GitHub\\FYP-Stream-Cipher\\max_terms.txt";
+    char *file_out_path = ".\\max_terms.txt";
     print_max_terms(max_terms_list, file_out_path, cipher_info);
     free(cipher_info);
     for(int i=0; i < max_terms_list->max_term_count; i++){
