@@ -17,7 +17,7 @@ Max_terms_list *mobius_find_max_terms(int max_term_limit, size_t dimension_limit
     for (int i = 0; i < dimension_limit; i++) {
         dimensions[i] = i;
     }
-    while (max_terms_list->max_term_count < max_term_limit && dimensions[dimension_limit - 1] < cipher_info->iv_size) {
+    while (max_terms_list->max_term_count < max_term_limit && dimensions[dimension_limit - 1] < cipher_info->iv_size - 1) {
         printf("upper dimension %d\n", dimensions[dimension_limit - 1]);
         uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, MIN_NUM_AXES, zeroed_key, cipher_info);
         printf("zero poly done\n");
@@ -75,7 +75,7 @@ void increase_dimensions_fixed_limit(int *dimensions, int dimension_count, const
     //dimensions elements should be in ascending order
     for (int i = dimension_count - 1; i >= 0; i--) {
         //starting with largest, check if it can be increased
-        if (dimensions[i] != cipher_info->iv_size - dimension_count - i) {
+        if (dimensions[i] < cipher_info->iv_size - dimension_count - i) {
             //if it can be, increase it and make all elements above it sequential
             dimensions[i]++;
             for (int g = i + 1; g < dimension_count; g++) {
