@@ -18,17 +18,41 @@ Max_terms_list *mobius_find_max_terms(int max_term_limit, size_t dimension_limit
         dimensions[i] = i;
     }
     while (max_terms_list->max_term_count < max_term_limit && dimensions[dimension_limit - 1] < cipher_info->iv_size) {
+        printf("upper dimension %d\n", dimensions[dimension_limit - 1]);
         uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, MIN_NUM_AXES, zeroed_key, cipher_info);
+        printf("zero poly done\n");
         uint64_t *linear_results = mobius_is_super_poly_linear(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+        printf("linear test done\n");
         Max_terms_list* cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+        printf("terms done\n");
         for (int i = 0; i < cube_max_terms->max_term_count; i++) {
-            printf("checking cube terms, overall max term count %d\n", max_terms_list->max_term_count);
+            printf(".");
             Max_term* current_max_term = cube_max_terms->max_terms[i];
             if (current_max_term->numberOfTerms > 0 && get_bit(linear_results, i+1) == 1) {
-                max_terms_list->max_term_count++;
-                //todo: use size doubling buffer to save reallocing too much
-                max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term) * max_terms_list->max_term_count);
-                max_terms_list->max_terms[max_terms_list->max_term_count-1] = current_max_term;
+                printf("\n");
+                //todo again, replace with hashmap
+                int already_exists = 0;
+                for(int g=0; g<max_terms_list->max_term_count;g++){
+                    uint64_t *existing_iv = max_terms_list->max_terms[g]->iv;
+                    int ivs_match = 1;
+                    for(int iv_index = 0; iv_index<(cipher_info->iv_size/64)+1; iv_index++){
+                        if(existing_iv[iv_index] != current_max_term->iv[iv_index]){
+                            ivs_match = 0;
+                            break;
+                        }
+                    }
+                    if(ivs_match){
+                        already_exists = 1;
+                        break;
+                    }
+                }
+                if(!already_exists) {
+                    max_terms_list->max_term_count++;
+                    //todo: use size doubling buffer to save reallocing too much
+                    max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term) * max_terms_list->max_term_count);
+                    max_terms_list->max_terms[max_terms_list->max_term_count - 1] = current_max_term;
+                    printf("max_terms_list->max_term_count %d\n", max_terms_list->max_term_count);
+                }
             }else{
                 free_max_term(current_max_term);
             }
@@ -40,13 +64,26 @@ Max_terms_list *mobius_find_max_terms(int max_term_limit, size_t dimension_limit
         //because say cube {1,2,3} and {4,5,6} will be search but not {1,2,4}
         //to correct this, come up with a system for heuistly finding good cubes
         //or searching exhustivly and remebering past sub cubes for reuse
-        for (int i = 0; i < dimension_limit; i++) {
-            dimensions[i] += dimension_limit;
-        }
+        increase_dimensions_fixed_limit(dimensions, dimension_limit, cipher_info);
     }
     free(dimensions);
     printf("overall max term count %d\n", max_terms_list->max_term_count);
     return max_terms_list;
+}
+
+void increase_dimensions_fixed_limit(int *dimensions, int dimension_count, const Cipher_info * const cipher_info) {
+    //dimensions elements should be in ascending order
+    for (int i = dimension_count - 1; i >= 0; i--) {
+        //starting with largest, check if it can be increased
+        if (dimensions[i] != cipher_info->iv_size - dimension_count - i) {
+            //if it can be, increase it and make all elements above it sequential
+            dimensions[i]++;
+            for (int g = i + 1; g < dimension_count; g++) {
+                dimensions[g] = dimensions[g - 1] + 1;
+            }
+            return;
+        }
+    }
 }
 
 //0 means is not linear
@@ -57,7 +94,7 @@ uint64_t *mobius_is_super_poly_linear(uint64_t *zeroed_key_super_poly, int *cube
         set_bit(results, 1, i);
     }
     //number of tests is arbitrary. Pick a better number based (or change test method) based on research papers
-    int number_of_keys = 10;
+    int number_of_keys = 15;
     uint64_t **keys = malloc(sizeof(size_t) * number_of_keys);
     for (int i = 0; i < number_of_keys; i++) {
         keys[i] = generate_key(cipher_info->key_size);
