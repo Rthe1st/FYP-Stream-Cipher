@@ -1,0 +1,1 @@
+add_library(cube_attack cube_attack.c mobius_cube_attack.c)

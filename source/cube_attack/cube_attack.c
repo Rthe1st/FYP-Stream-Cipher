@@ -3,9 +3,9 @@
 #include <inttypes.h>
 
 #include "cube_attack.h"
-#include "useful.h"
-#include "cipher_helpers.h"
-#include "grain.h"
+#include "../cipher_io/useful.h"
+#include "../ciphers/cipher_helpers.h"
+#include "../ciphers/grain.h"
 
 //basic algorithm
 //1) Pick an IV

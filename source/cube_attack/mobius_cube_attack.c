@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <dxgi.h>
 
-#include "cipher_helpers.h"
+#include "../ciphers/cipher_helpers.h"
 #include "mobius_cube_attack.h"
 #include "cube_attack.h"
-#include "useful.h"
+#include "../cipher_io/useful.h"
 
 const int MIN_NUM_AXES = 0;
 

@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "grain.h"
 #include<stdio.h>
-#include "useful.h"
+#include "../cipher_io/useful.h"
 #include "grain.h"
 
 int and_bits(const uint64_t sum_powers_of_2, const uint64_t bits);

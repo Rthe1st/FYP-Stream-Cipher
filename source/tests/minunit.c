@@ -1,4 +1,5 @@
 #include <stdlib.h>
+
 #include "minunit.h"
 
 int run_cases(test_case * test_cases, int num_of_test_cases) {

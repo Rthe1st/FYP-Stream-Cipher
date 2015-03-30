@@ -4,12 +4,9 @@
 #include <inttypes.h>
 
 #include "minunit.h"
-#include "grain.h"
-#include "useful.h"
-#include "efficient_grain.h"
-#include "cipher_helpers.h"
-
-int tests_run = 0;
+#include "../ciphers/grain.h"
+#include "../cipher_io/useful.h"
+#include "../ciphers/efficient_grain.h"
 
 static int testSetBit() {
     uint64_t testBits[2] = {0, 0};
@@ -346,9 +343,9 @@ static int testEfficientPreOutput() {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int run_cipher_unit_tests(){
     srand(time(NULL));
     test_case test_cases[9] = {testSetBit, testGetBit, testLinearFeedback, testEfficientLinearFeedback, testEfficientNonLinearFeedback,
     testPreoutput, testEfficientPreOutput, testGrain, testEfficientGrain};
-    run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
+    return run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }

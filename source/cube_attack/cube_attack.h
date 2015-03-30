@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "cipher_helpers.h"
+#include "../ciphers/cipher_helpers.h"
 
 #ifndef CUBE_ATTACK_H
 #define CUBE_ATTACK_H

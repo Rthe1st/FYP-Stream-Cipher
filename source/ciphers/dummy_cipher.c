@@ -2,8 +2,7 @@
 
 #include "dummy_cipher.h"
 #include "cipher_helpers.h"
-#include "cube_attack.h"
-#include "useful.h"
+#include "../cipher_io/useful.h"
 
 Cipher_info* dummy_info(){
     Cipher_info* cipher_info = malloc(sizeof(*cipher_info));

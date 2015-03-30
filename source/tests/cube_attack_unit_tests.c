@@ -4,10 +4,10 @@
 #include <inttypes.h>
 
 #include "minunit.h"
-#include "cube_attack.h"
-#include "useful.h"
-#include "grain.h"
-#include "dummy_cipher.h"
+#include "../cube_attack/cube_attack.h"
+#include "../cipher_io/useful.h"
+#include "../ciphers/grain.h"
+#include "../ciphers/dummy_cipher.h"
 
 static int test_increase_dimensions(){
     Cipher_info * cipher_info = grain_info();
@@ -277,8 +277,9 @@ static int test_find_max_terms(){
     return 0;
 }
 
-int main(int argc, char **argv) {
+int run_cube_attack_unit_tests() {
     test_case test_cases[6] = {test_increase_dimensions, test_get_super_poly_bit, test_get_super_poly_bit_dummy_cipher, test_construct_max_term,
                                 test_is_super_poly_linear, test_find_max_terms};
     run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
+    return EXIT_SUCCESS;
 }

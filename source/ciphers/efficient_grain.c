@@ -2,8 +2,8 @@
 #include <stdlib.h>
 
 #include "grain.h"
-#include "useful.h"
-#include "power_2_constants.h"
+#include "../cipher_io/useful.h"
+#include "../generated/power_2_constants.h"
 #include "efficient_grain.h"
 
 int and_bits(const uint64_t sum_powers_of_2, const uint64_t bits){

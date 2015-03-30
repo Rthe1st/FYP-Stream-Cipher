@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include "grain.h"
-#include "useful.h"
-#include "encoding.h"
+#include "./ciphers/grain.h"
+#include "./cipher_io/useful.h"
+#include "./cipher_io/encoding.h"
 
 //expects arguments to be grain key iv streamLength
 //writes plain keystream to file

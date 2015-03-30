@@ -4,12 +4,10 @@
 #include <time.h>
 
 #include "minunit.h"
-#include "mobius_cube_attack.h"
-#include "cube_attack.h"
-#include "useful.h"
-#include "dummy_cipher.h"
-
-int tests_run = 0;
+#include "../cube_attack/mobius_cube_attack.h"
+#include "../cube_attack/cube_attack.h"
+#include "../cipher_io/useful.h"
+#include "../ciphers/dummy_cipher.h"
 
 static int test_mobius_is_super_poly_linear(){
     srand((unsigned int) time(NULL));
@@ -191,7 +189,7 @@ int test_mobius_find_max_terms(){
     return 0;
 }
 
-int main(int argc, char **argv) {
+int run_mobius_cube_attack_unit_tests() {
     test_case test_cases[4] = {test_mobius_transform, test_mobius_construct_max_terms, test_mobius_is_super_poly_linear, test_mobius_find_max_terms};
     run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }

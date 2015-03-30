@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "cipher_helpers.h"
-#include "useful.h"
+#include "../cipher_io/useful.h"
 
 void set_bit(uint64_t *bits, const int bit_value, int bit_index){
     //extract the bit we're setting to see if it needs to be changed

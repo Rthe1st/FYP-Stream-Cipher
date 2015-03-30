@@ -4,10 +4,11 @@
 #include <time.h>
 
 #include "attack_main.h"
-#include "cube_attack.h"
-#include "mobius_cube_attack.h"
-#include "useful.h"
-#include "grain.h"
+#include "./cube_attack/cube_attack.h"
+#include "./cube_attack/mobius_cube_attack.h"
+#include "./cipher_io/useful.h"
+#include "./ciphers/grain.h"
+#include "./ciphers/cipher_helpers.h"
 
 int main(int argc, char **argv) {
     srand((unsigned int) time(NULL));

@@ -2,10 +2,9 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-#include "useful.h"
+#include "../cipher_io/useful.h"
 #include "grain.h"
 #include "cipher_helpers.h"
-#include "cube_attack.h"
 
 const int GRAIN_FULL_INIT_CLOCKS = 256;
 
