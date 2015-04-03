@@ -240,39 +240,68 @@ static int test_is_super_poly_linear(){
     return 0;
 }
 
+int check_max_terms(int clocks, Max_term * correct_max_terms, Max_term * actual_max_terms, int expected_amount, int number_being_tested, int iv_size){
+    mu_assert("failed for %d clocks, max_term_count is %d not %d", HASH_COUNT(actual_max_terms) == expected_amount, clocks, HASH_COUNT(actual_max_terms), expected_amount);
+    for(int i=0;i<number_being_tested; i++){
+        Max_term correct_max_term = correct_max_terms[i];
+        Max_term* actual_max_term = get_max_term(&actual_max_terms, correct_max_term.iv, iv_size);
+        mu_assert("failed for %d clocks, no maxterm with iv %"PRIu64, actual_max_term != NULL, clocks, correct_max_term.iv[0]);
+        mu_assert("failed for %d clocks,  max term iv %"PRIu64" no. of terms == %d not %d", actual_max_term->numberOfTerms == correct_max_term.numberOfTerms, clocks, correct_max_term.iv[0],  actual_max_term->numberOfTerms, correct_max_term.numberOfTerms);
+        for(int term_num=0; term_num<correct_max_term.numberOfTerms;term_num++) {
+            mu_assert("failed for %d clocks, max term iv %"
+                              PRIu64
+                              " term[0] is %d not %d", actual_max_term->terms[term_num] == correct_max_term.terms[term_num], clocks,
+                      correct_max_term.iv[0], actual_max_term->terms[term_num], correct_max_term.terms[term_num]);
+        }
+        mu_assert("failed for %d clocks, max term iv %"PRIu64" has plusOne == %d not %d", actual_max_term->plusOne == correct_max_term.plusOne, clocks, correct_max_term.iv[0], actual_max_term->plusOne, correct_max_term.plusOne);
+    }
+    delete_hash_and_free(&actual_max_terms);
+    return 0;
+}
+
 static int test_find_max_terms(){
     printf("testing find_max_terms\n");
     size_t dimension_limit = 5;
-    int max_term_limit = 5;//set arbitrarily high because we can afford find all max_terms (2^5 iv combinations)
+    int max_term_limit = 5;//set arbitrarily high because we can afford to find all max_terms (2^5 iv combinations)
     Cipher_info* cipher_info = dummy_info();
+    uint64_t  iv[2] = {0,0};
+    int terms[5] = {0};
+    //testing for 0 clocks
+    int expected_max_term_amount = 1;
+    Max_term * correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    //---
+    iv[0] = 1;
+    terms[0] = 0;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
     cipher_info->init_clocks = 0;
-    Max_terms_list* max_terms_list = find_max_terms(max_term_limit, dimension_limit, cipher_info);
-    mu_assert("failed for 0 clocks, max_term_count != 0", max_terms_list->max_term_count == 1);
-    Max_term *max_term = max_terms_list->max_terms[0];
-    for (int i = 0; i < max_terms_list->max_term_count; ++i) {
-        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i]->numberOfTerms, max_terms_list->max_terms[i]->plusOne);
-        for(int g=0;g<max_terms_list->max_terms[i]->numberOfTerms;g++){
-            printf("term : %d\n", max_terms_list->max_terms[i]->terms[0]);
-        }
+    Max_term* actual_max_terms = find_max_terms(max_term_limit, dimension_limit, cipher_info);
+    int success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
+    if(success){
+        return 1;
     }
-    mu_assert("failed for 0 clocks first max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 0 && max_term->plusOne == 0);
-    free(max_terms_list);
     //testing for 5 clocks
+    expected_max_term_amount = 3;
+    correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    //---
+    iv[0] = 8; iv[1] = 0;
+    terms[0] = 3;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 6; iv[1] = 0;
+    terms[0] = 3;
+    correct_max_terms[1] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 7; iv[1] = 0;
+    terms[0] = 0;
+    correct_max_terms[2] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
     cipher_info->init_clocks = 5;
-    max_terms_list = find_max_terms(max_term_limit, dimension_limit, cipher_info);
-    mu_assert("failed for 5 clocks, max_term_count != 3", max_terms_list->max_term_count == 3);
-    max_term = max_terms_list->max_terms[0];
-    for (int i = 0; i < max_terms_list->max_term_count; ++i) {
-        printf("max term %d, no terms: %d, plus one: %d\n", i, max_terms_list->max_terms[i]->numberOfTerms, max_terms_list->max_terms[i]->plusOne);
-        for(int g=0;g<max_terms_list->max_terms[i]->numberOfTerms;g++){
-            printf("term : %d\n", max_terms_list->max_terms[i]->terms[0]);
-        }
+    actual_max_terms = find_max_terms(max_term_limit, dimension_limit, cipher_info);
+    success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
+    if(success){
+        return 1;
     }
-    mu_assert("failed for 5 clocks 1st max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 3 && max_term->plusOne == 0);
-    max_term = max_terms_list->max_terms[1];
-    mu_assert("failed for 5 clocks 2nd max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 3 && max_term->plusOne == 0);
-    max_term = max_terms_list->max_terms[2];
-    mu_assert("failed for 5 clocks 3rd max term has wrong values", max_term->numberOfTerms == 1 && max_term->terms[0] == 0 && max_term->plusOne == 0);
     printf("testing find_max_terms done\n");
     return 0;
 }
@@ -280,6 +309,5 @@ static int test_find_max_terms(){
 int run_cube_attack_unit_tests() {
     test_case test_cases[6] = {test_increase_dimensions, test_get_super_poly_bit, test_get_super_poly_bit_dummy_cipher, test_construct_max_term,
                                 test_is_super_poly_linear, test_find_max_terms};
-    run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
-    return EXIT_SUCCESS;
+    return run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }

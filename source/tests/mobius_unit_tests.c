@@ -8,6 +8,7 @@
 #include "../cube_attack/cube_attack.h"
 #include "../cipher_io/useful.h"
 #include "../ciphers/dummy_cipher.h"
+#include "cube_attack_unit_tests.h"
 
 static int test_mobius_is_super_poly_linear(){
     srand((unsigned int) time(NULL));
@@ -58,40 +59,51 @@ static int test_mobius_is_super_poly_linear(){
 static int test_mobius_construct_max_terms(){
     printf("testing construct max terms\n");
     Cipher_info * cipher_info = dummy_info();
+    uint64_t zeroed_key[1] = {0};
+    //---
+    int expected_max_term_amount = 1;
+    uint64_t iv[2] = {0,0};
+    int terms[5] = {0};
+    Max_term * correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    //--
+    iv[0] = 1; iv[1] = 0;
+    terms[0] = 0;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    cipher_info->init_clocks = 0;
     int dimension_limit = 1;
     int dimensions[10] = {0};
-    uint64_t zeroed_key[1] = {0};
-    cipher_info->init_clocks = 0;
     uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, 0, zeroed_key, cipher_info);
-    Max_terms_list* cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-    mu_assert("1 clock, maxterm count of %d != 2\n", cube_max_terms->max_term_count == 1, cube_max_terms->max_term_count);
-    Max_term* chosen_max_term = cube_max_terms->max_terms[0];
-    mu_assert("1 clock, maxterm[0], num terms == %d instead of 1\n", chosen_max_term->numberOfTerms == 1, chosen_max_term->numberOfTerms);
-    mu_assert("1 clock, maxterm[0], terms[0] == %d, not 3\n", chosen_max_term->terms[0] == 0, chosen_max_term->terms[0]);
-    mu_assert("1 clock, maxterm[0], plusone != 0\n", chosen_max_term->plusOne == 0);
-    free(zeroed_key_poly);
-    for(int i=0;i<cube_max_terms->max_term_count;i++){
-        free_max_term(cube_max_terms->max_terms[i]);
+    Max_term* actual_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+    int success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
+    if(success){
+        return 1;
     }
-    free(cube_max_terms);
-    dimension_limit = 3;
-    dimensions[0] = 0; dimensions[1] = 1; dimensions[2] = 2;
+    //---
+    expected_max_term_amount = 7;
+    correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    //---
+    iv[0] = 6; iv[1] = 0;
+    terms[0] = 3;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 7; iv[1] = 0;
+    terms[0] = 0;
+    correct_max_terms[1] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 1; iv[1] = 0;
+    correct_max_terms[2] = *make_max_term(iv, terms, 0, 0, cipher_info->iv_size);
+    //---
     cipher_info->init_clocks = 5;
     zeroed_key_poly = mobius_transform(dimensions, dimension_limit, 0, zeroed_key, cipher_info);
-    cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-    mu_assert("6 clocks, max term count != 7\n", cube_max_terms->max_term_count == 7);
-    chosen_max_term = cube_max_terms->max_terms[6];
-    mu_assert("failed for 6 init clocks results[6](111) num terms != 1\n", chosen_max_term->numberOfTerms == 1);
-    mu_assert("failed for 6 init clocks results[6](111) term[1] == %d not 0\n",chosen_max_term->terms[0] == 0, chosen_max_term->terms[0]);
-    chosen_max_term = cube_max_terms->max_terms[5];
-    mu_assert("failed for 6 init clocks results[5](110) num of terms != 1\n", chosen_max_term->numberOfTerms == 1);
-    mu_assert("failed for 6 init clocks results[5](110) term[0] != 3\n",chosen_max_term->terms[0] == 3);
-    chosen_max_term = cube_max_terms->max_terms[2];
-    mu_assert("failed for 6 init clocks results[2](011) num terms != 0\n", chosen_max_term->numberOfTerms == 0);
-    for(int i=0;i<cube_max_terms->max_term_count;i++){
-        free_max_term(cube_max_terms->max_terms[i]);
+    dimension_limit = 3;
+    dimensions[0] = 0; dimensions[1] = 1; dimensions[2] = 2;
+    actual_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+    success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, 3, cipher_info->iv_size);
+    if(success){
+        return 1;
     }
-    free(cube_max_terms);
+    //---
     printf("done testing onstruct max terms\n");
     return 0;
 }
@@ -138,58 +150,54 @@ static int test_mobius_transform(){
 int test_mobius_find_max_terms(){
     printf("testing mobois find max terms\n");
     Cipher_info * cipher_info = dummy_info();
+    uint64_t iv[2] = {0};
+    int terms[5] = {0};
+    //testing for 0 clocks
+    int expected_max_term_amount = 1;
+    Max_term * correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    //--
+    iv[0] = 1; iv[1] = 0;
+    terms[0] = 0;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
     cipher_info->init_clocks = 0;
     int dimension_limit = 1;
     int max_term_limit = 1;
-    Max_terms_list* max_terms_list = mobius_find_max_terms(max_term_limit,dimension_limit, cipher_info);
-    Max_term ** max_terms = max_terms_list->max_terms;
-    int expected_max_term_count;
-    int expected_term_count;
-    int expected_term_values[5];
-    int expected_iv;
-    expected_max_term_count = 1;
-    expected_term_count = 1;
-    expected_term_values[0] = 0;
-    expected_iv = 1;//1 not 0 because the bit index indicates the iv, so 00001 is iv[0], 00010 is iv[1], 00000 is no ivs used
-    mu_assert("failed for 0 clocks, max_term_count was %d not %d\n", max_terms_list->max_term_count == expected_max_term_count, max_terms_list->max_term_count, expected_max_term_count);
-    mu_assert("failed for 0 clocks, max_term[0] term count was %d not %d\n", max_terms[0]->numberOfTerms == expected_term_count, max_terms[0]->numberOfTerms, expected_term_count);
-    mu_assert("failed for 0 clocks, max_term[0] term[0] was %d not %d\n", max_terms[0]->terms[0] == expected_term_values[0], max_terms[0]->terms[0], expected_term_values[0]);
-    mu_assert("failed for 0 clocks, max_term[0] iv was %"PRIu64" not %d\n", max_terms[0]->iv[0] == expected_iv, max_terms[0]->iv[0], expected_iv);
+    Max_term* actual_max_terms = mobius_find_max_terms(max_term_limit,dimension_limit, cipher_info);
+    printf("exp amt %d\n", expected_max_term_amount);
+    int success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
+    if(success){
+        return 1;
+    }
+    //---
+    //testing 5
+    expected_max_term_amount = 3;
+    correct_max_terms = malloc(sizeof(Max_term)*expected_max_term_amount);
+    iv[0] = 8; iv[1] = 0;
+    terms[0] = 3;
+    correct_max_terms[0] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 6; iv[1] = 0;
+    terms[0] = 3;
+    correct_max_terms[1] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
+    iv[0] = 7; iv[1] = 0;
+    terms[0] = 0;
+    correct_max_terms[2] = *make_max_term(iv, terms, 0, 1, cipher_info->iv_size);
+    //---
     cipher_info->init_clocks = 5;
-    max_terms_list = mobius_find_max_terms(5, 4, cipher_info);
-    max_terms = max_terms_list->max_terms;
-    Max_term chosen_max_term = *max_terms[0];
-    expected_max_term_count = 3;
-    printf("num of max terms %d\n", max_terms_list->max_term_count);
-    mu_assert("failed for 6 clocks, max_term_count was %d not %d\n", max_terms_list->max_term_count == expected_max_term_count, max_terms_list->max_term_count, expected_max_term_count);
-    expected_term_count = 1;
-    printf("chiosen.number of terms %d\n", chosen_max_term.numberOfTerms);
-    mu_assert("failed for 6 clocks, max_term[0] term count was %d not %d\n", chosen_max_term.numberOfTerms == expected_term_count, chosen_max_term.numberOfTerms, expected_term_count);
-    expected_term_values[0] = 3;
-    mu_assert("failed for 6 clocks, max_term[0] term[0] was %d not %d\n", chosen_max_term.terms[0] ==  expected_term_values[0], chosen_max_term.terms[0], expected_term_values[0]);
-    expected_iv = 6;
-    mu_assert("failed for 6 clocks, max_term[0] iv was %"PRIu64" not %d\n", chosen_max_term.iv[0] == expected_iv, chosen_max_term.iv[0], expected_iv);
-    //
-    chosen_max_term = *max_terms[1];
-    expected_term_count = 1;
-    mu_assert("failed for 6 clocks, max_term[1] term count was %d not %d\n", chosen_max_term.numberOfTerms == expected_term_count, chosen_max_term.numberOfTerms, expected_term_count);
-    expected_term_values[0] = 0;
-    mu_assert("failed for 6 clocks, max_term[1] term[0] was %d not %d\n", chosen_max_term.terms[0] == expected_term_values[0], chosen_max_term.terms[0], expected_term_values[0]);
-    expected_iv = 7;
-    mu_assert("failed for 6 clocks, max_term[1] iv was %"PRIu64" not %d\n", chosen_max_term.iv[0] == expected_iv, chosen_max_term.iv[0], expected_iv);
-    //
-    chosen_max_term = *max_terms[2];
-    expected_term_count = 1;
-    mu_assert("failed for 6 clocks, max_term[2] term count was %d not %d\n", chosen_max_term.numberOfTerms == expected_term_count, chosen_max_term.numberOfTerms, expected_term_count);
-    expected_term_values[0] = 3;
-    mu_assert("failed for 6 clocks, max_term[2] term[0] was %d not %d\n", chosen_max_term.terms[0] ==  expected_term_values[0], chosen_max_term.terms[0], expected_term_values[0]);
-    expected_iv = 8;
-    mu_assert("failed for 6 clocks, max_term[2] iv was %"PRIu64" not %d\n", chosen_max_term.iv[0] == expected_iv, chosen_max_term.iv[0], expected_iv);
+    dimension_limit = 3;
+    max_term_limit = 3;
+    actual_max_terms = mobius_find_max_terms(max_term_limit, dimension_limit, cipher_info);
+    success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
+    if(success){
+        return 1;
+    }
     printf("done mobois find max terms\n");
     return 0;
 }
 
 int run_mobius_cube_attack_unit_tests() {
     test_case test_cases[4] = {test_mobius_transform, test_mobius_construct_max_terms, test_mobius_is_super_poly_linear, test_mobius_find_max_terms};
-    run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
+    return run_cases(test_cases, (sizeof test_cases/ sizeof(test_case)));
 }

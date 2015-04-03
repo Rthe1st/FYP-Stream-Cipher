@@ -6,6 +6,7 @@
 #include "../cipher_io/useful.h"
 #include "../ciphers/cipher_helpers.h"
 #include "../ciphers/grain.h"
+#include "../ut_lib/uthash.h"
 
 //basic algorithm
 //1) Pick an IV
@@ -46,7 +47,8 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension, const Cipher_info *
     return is_linear;
 }
 
-void increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info * const cipher_info) {
+//returns 1 if dimension count increase, 0 otherwise
+int increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info * const cipher_info) {
     //dimensions elements should be in ascending order
     for (int i = (*dimension_count) - 1; i >= 0; i--) {
         //starting with largest, check if it can be increased
@@ -56,7 +58,7 @@ void increase_dimensions(int *dimensions, int *dimension_count, const Cipher_inf
             for (int g = i + 1; g < *dimension_count; g++) {
                 dimensions[g] = dimensions[g - 1] + 1;
             }
-            return;
+            return 0;
         }
     }
     //if no elements can be increased, more dimensions are needed
@@ -65,6 +67,7 @@ void increase_dimensions(int *dimensions, int *dimension_count, const Cipher_inf
     for (int i = 0; i < *dimension_count; i++) {
         dimensions[i] = i;
     }
+    return 1;
 }
 
 //find max terms
@@ -78,31 +81,29 @@ void increase_dimensions(int *dimensions, int *dimension_count, const Cipher_inf
 //increase the largest dimension by 1
 // go to 1)
 
-Max_terms_list *find_max_terms(int max_term_limit, size_t dimension_limit, const Cipher_info * const cipher_info) {
+Max_term * find_max_terms(int max_term_limit, size_t dimension_limit, const Cipher_info * const cipher_info) {
     int *dimensions = calloc(dimension_limit, sizeof(int));
     int dimension_count = 1;
-    Max_terms_list *max_terms_list = malloc(sizeof(Max_terms_list));
-    max_terms_list->max_terms = malloc(sizeof(Max_term*)*0);
-    max_terms_list->max_term_count = 0;
-    while (max_terms_list->max_term_count < max_term_limit && dimension_count < dimension_limit) {
+    Max_term * max_terms = NULL;
+    while (HASH_COUNT(max_terms) < max_term_limit && dimension_count < dimension_limit) {
         if (is_super_poly_linear(dimensions, dimension_count, cipher_info)){
             Max_term *potential_max_term = construct_max_term(dimensions, dimension_count, cipher_info);
+            int added = 0;
             if (potential_max_term->numberOfTerms > 0) {
-                // max_terms_list->max_terms[max_terms_list->max_term_count] = *potential_max_term;
-                //(max_terms_list->max_term_count)++;
-                max_terms_list->max_term_count++;
-                //todo: use size doubling buffer to save reallocing too much
-                max_terms_list->max_terms = realloc(max_terms_list->max_terms, sizeof(Max_term*)*max_terms_list->max_term_count);
-                max_terms_list->max_terms[max_terms_list->max_term_count-1] = potential_max_term;
-                printf("max term count: %d\n", max_terms_list->max_term_count);
-            }else{
+                if(add_max_term(&max_terms, potential_max_term, cipher_info->iv_size)){
+                    printf("max_terms_list->max_term_count %d\n", HASH_COUNT(max_terms));
+                    added = 1;
+                }
+            }
+            if(!added){
                 free_max_term(potential_max_term);
             }
         }
         increase_dimensions(dimensions, &dimension_count, cipher_info);
     }
+    printf("ended\n");
     free(dimensions);
-    return max_terms_list;
+    return max_terms;
 }
 
 Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_info * const cipher_info) {
@@ -130,15 +131,50 @@ Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_i
     return max_term;
 }
 
+Max_term * make_max_term(uint64_t * iv, int* terms, int plus_one, int number_of_terms, int iv_size){
+    Max_term * max_term = malloc(sizeof(Max_term));
+    max_term->iv = malloc(sizeof(uint64_t )*iv_size);
+    for(int i = 0; i<iv_size; i++){
+        max_term->iv[i] = iv[i];
+    }
+    max_term->terms = malloc(sizeof(int)*number_of_terms);
+    for(int i = 0; i<number_of_terms; i++){
+        max_term->terms[i] = terms[i];
+    }
+    max_term->plusOne = plus_one;
+    max_term->numberOfTerms = number_of_terms;
+    return max_term;
+}
+
+int add_max_term(Max_term ** list, Max_term* max_term, int iv_size){
+    Max_term * existing_max_term;
+    HASH_FIND(hh, *list, max_term->iv, (iv_size/64)+1, existing_max_term);
+    if(existing_max_term == NULL) {
+        HASH_ADD_KEYPTR(hh, *list, max_term->iv, (iv_size/64)+1, max_term);
+        return 1;
+    }else{
+        return 0;
+    }
+}
+
+void delete_hash_and_free(Max_term ** max_terms){
+    Max_term * current_max_term, *tmp;
+    HASH_ITER(hh, *max_terms, current_max_term, tmp) {
+        HASH_DEL(*max_terms,current_max_term);
+        free(current_max_term);
+    }
+}
+
+Max_term *get_max_term(Max_term **max_terms_list, uint64_t *iv, int iv_size){
+    Max_term * max_term;
+    HASH_FIND(hh, *max_terms_list, iv, (iv_size/64)+1, max_term);
+    return max_term;
+}
+
 void free_max_term(Max_term * max_term){
     free(max_term->terms);
     free(max_term->iv);
     free(max_term);
-}
-
-void free_max_term_list(Max_terms_list * max_terms_list){
-    free(max_terms_list->max_terms);
-    free(max_terms_list);
 }
 
 int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, const Cipher_info * const cipher_info) {
