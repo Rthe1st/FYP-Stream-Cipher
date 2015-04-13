@@ -10,7 +10,7 @@
 \section{Abstract}
 Stream ciphers are a widely used type of cipher for encryption based on cryptographically secure pseudo-random number generators. In this paper, we  implement and examine the specifications of the one stream cipher known as Grain-128a and the applicability of an attack called the "Cube Attack" to it.
 
-It was observed that existing papers assume a good level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for speciliased background knowledge. General understanding of computer science to a bachlor level alongside basic algerbra should be enough.
+It was observed that existing papers assume a good level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to a bachelor level alongside basic algerbra should be enough.
 \chapter{Introduction}
 In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". It is an algerbraic (as opposed to statistical) attack which relies on the attacker being able to set some variables in the ciphers initial state and observe the output. What makes the attack particular interesting is its generality, the exact mechanism of the cipher need not be known and can be treated as a black box where only the input and output need to be observed.
 
@@ -20,7 +20,7 @@ In order to aid explanation of the attack, we focus on its applicability to two 
 
 Secondly, Grain128a is introduced. The first version of the Grain cipher was invented in 2006 by Hell, Johansson and Meier \cite{Grain128aSpec} and submitted to the eSTREAM project. Having undergone several alteration to strengthen it, Grain128a is the latest version, featuring a 128 bit key and support for authentication (though authentication is not examined in this paper).
 
-This paper uses the Grain128a cipher to highlight mechanisms that can be used to improve resistance to the cube attack and various artfical weaknesses are impossed on the cipher to this end. These include reducing the complexity of its feedback function and reducing the number of initilisation rounds run before output is produced.
+This paper uses the Grain128a cipher to highlight mechanisms that can be used to improve resistance to the cube attack and various artfical weaknesses are imposed on the cipher to this end. These include reducing the complexity of its feedback function and reducing the number of initilisation rounds run before output is produced.
 
 Finaly there is a discussion of techniques such as the Mobius Transform that can be used to improve the Cube Attacks efficency. The explanation is further enhanced by demonstrating its use on the implemented ciphers.
 
@@ -51,6 +51,8 @@ Stream cipher make use of changes to their state to generates psuedo random outp
 A shift register is an array of bits which on can be "clocked", upon which all the bits shift one place to either the right or left, with the end bit being lost and a newest bit being inserted at the start.
 
 Both cipher in tthis paper are shift register based, using a feedback function to calculate the new value from a combination of the exisitng bits.
+
+a reigster can only go through a maximum of $2^n-1$ where n is its number of bits. This translates into a cipher which is unsafe to use after $2^n-1$ bits of output without resetting it with a new IV value. If you make the feedback function of a sift register a primitive polynomial, then this maximal number of states is guaranteed. A primitive polynomial is one that has no factors other then itself and 1.
 
 \section{Binary Algebra}
 Often a stream ciphers key, IV, internal state and key stream are defined in bits, so we discuss them in terms of what is known as $\mathit{GF(2)}$, a finite field over 0 and 1. That is, only the values of 0 and 1 are valid numbers. With this in mind, the operations add and multiply can be taken to mean XOR and AND respectively because they have identical truth tables.
@@ -102,15 +104,15 @@ For example, a major issue with cipher implementations is ensuring resistance to
 Instead, time was spent on two other areas: ensuring speed of execution and creating a common interface that can be used to decouple the ciphers from attacks and file encrypting.
 
 \section{Implementation}
-The implementation of both ciphers shared many features. THis was partly because they were both shift register based, but also because a common interface was required to make their integration into different programs easy. This included unit tests, a small program to encryt/decryt text and the attack program.
+The implementation of both ciphers shared many features. THis was partly because they were both shift register based, but also because a common interface was required to make their integration into different programs easy. This included unit tests, a small program to encrypt/decrypt text and the attack program.
 
-Focusing first on the common interface. A data structure containing the following was created: key size, IV size, the number of initilisation clocks required and a function to actualy encrypt data. Being written in C, the last feild takes the form of a function pointer. Due to this functions declaration being common among all ciphers, all ciphers must take their key and IV as 64 bit number arrays.
+Focusing first on the common interface. A data structure containing the following was created: key size, IV size, the number of initialisation clocks required and a function to actually encrypt data. Being written in C, the last field takes the form of a function pointer. Due to this functions declaration being common among all ciphers, all ciphers must take their key and IV as 64 bit number arrays.
 
-To take use of a cipher, all that need be done is call a function returnin the data structure with the cipher specific values initilised. Then the function in the function pointer could be called (alnognside the key and IV values) with no customisation required between ciphers.
+To take use of a cipher, all that need be done is call a function returning the data structure with the cipher specific values initialised. Then the function in the function pointer could be called (alongside the key and IV values) with no customisation required between ciphers.
 
-There were also two measure taken to improve the efficeny of the ciphers. Each bit in each element of the key and IV arrays was treated as a bit in the ciphers state. This is opposed to treating each element of the array as a cipher state bit. As such, a 128 bit key (used in Grain) is reduced from 128 to 16 bytes ($128/64 = 2, 64/8=4$).
+There were also two measure taken to improve the efficiency of the ciphers. Each bit in each element of the key and IV arrays was treated as a bit in the ciphers state. This is opposed to treating each element of the array as a cipher state bit. As such, a 128 bit key (used in Grain) is reduced from 128 to 16 bytes ($128/64 = 2, 64/8=4$).
 
-This allowed for some speed ups using bitwise operations. For example, when performing a $\land$ on a number of bits whose indexs fall one the same 64 bit element, it could be done in only two operations by $bits \land 2_sum = 2_sum$ where 2_sum is the summation of the $2^i$ for all indexs i of bits you want.
+This allowed for some speed ups using bitwise operations. For example, when performing a $\land$ on a number of bits whose indexs fall one the same 64 bit element, it could be done in only two operations by $bits \land S = S$ where $S$ is the summation of the powers $2^i$ for all indexs i of bits you wish to extract.
 
 Sadly, in practise %quote some performance measurments
 
@@ -124,7 +126,7 @@ A number of these clocks would be performed and any output discard intialy so as
 
 \subsection{Analysis}
 
-THe properities desired in the cipher were those that would show a variety of cube attack cases, but in few enough cycles to make manual calculation feasable. This was done but at the compromise of searious flaws to the cipher.
+The properties desired in the cipher were those that would show a variety of cube attack cases, but in few enough cycles to make manual calculation feasable. This was done but at the compromise of serious flaws to the cipher.
 
 Firstly, the key and IV values are so small as to make a brute force attack trivial. Lets say a user encrypted a plain text P use key K and iv I. On observing the cipher text, an attacker could set there stream cipher to every combination of key and IV and perform decryption on the cipher text for each. As soon as coherent plain text was observed the key and IV used would be known to be the correct one. As there are only 5 key bits and 5 IV bits, there would be $2^(5+5) = 2^10$ combinations to try, trivially do able on modern hardware.
 %add ref for trival claim?
@@ -133,14 +135,15 @@ Secondly, the feedback function is relied upton to scramble the key and IV value
 
 For example, the only feeback to the IV register is in the form of an AND of IV bits 1 and 2. This means that the IV's state is never mixed with the key, which makes it easy for an attacker to compute the IV's contribution to the feedback function.
 
-Even more critically, the use of an AND gate for the IV feedback means that if any  of the IV bits 1 through 4 are 0, within a maximum of 8 cycles the whole IV register will be zeroed. This is a result of the AND function being biased towards 0 (3 of 4 possible inouts gives 0) and could be avoided by using the balenced XOR function instead. The only way to avoid this is to set all IV bits to 1, which both negates the point of an IV (since theres only 1 usable value) and results the opposite problem, all IV bits are now 1 and will stay that way.
+Even more critically, the use of an AND gate for the IV feedback means that if any  of the IV bits 1 through 4 are 0, within a maximum of 8 cycles the whole IV register will be zeroed. This is a result of the AND function being biased towards 0 (3 of 4 possible inputs gives 0) and could be avoided by using the balanced XOR function instead. The only way to avoid this is to set all IV bits to 1, which both negates the point of an IV (since there's only 1 usable value) and results the opposite problem, all IV bits are now 1 and will stay that way.
 
-Exaserbating this issue is the use of an AND gate in combinating the IV bit 0 with key bit 0 suffers from this bias to. As soon as the IV registered becomes zeroed, this and function will also produce only zeros. Admitadly, because the result is then combined with other bits via XOR, the key register is not damaged so irraparably, thoguht it is a huge weakness no the less.
+Exaserbating this issue is the use of an AND gate in combinating the IV bit 0 with key bit 0 suffers from this bias to. As soon as the IV registered becomes zeroed, this and function will also produce only zeros. Admitadly, because the result is then combined with other bits via XOR, the key register is not damaged so irreparably, thought it is a huge weakness no the less.
 
-As discuessed earlier when shift registers were introduced, a reigster can only go through a maxium of $2^n-1$ where n is its number of bits. This translates into a cipher which is unsafe to use after $2^n-1$ bits of output without resetting it with a new IV value. If you make the feedback function of a sift register a primitive polynomial, then this maximal number of states is guranteed. A primitive polynomial is one that has no factors other then itself and 1. The feedback function for the IV register is denoted as: $x^5+x^2+x^1=x(x^4+x+1)$ and so is obviously not primitive.
+Both the IV and key register have non-linear feedback functions due to the use of AND gates. This in its self isnt nessarily a problem, although it does make it some what harder to verify that the feedback functions provide a maxium length non repeating sequence. Where as linear feedback can be guranteed maximal by making the feedback function a primitive polynomial, non-linear feedback is more difficult to analysis. There is no general method for easily knowing if a given nonlinear feedback function is maximal, only for certain subsets. %ref
+Luckily in this case the small size of the registers means they can be brute forced, as has been done by Elena Dubrova%ref
+This paper lists the maximal nonlinear polynomials for 5 bits and the feedback function for the IV register, denoted as: $x^5+x^2*x^1$ is not among them. 
 
-The key feedback function is more of an odd case, as it includes the IV in the feedback. When the IV bit 0 is 1 the AND's output will be the value of key register bit 0. So the feedback fucntion will be $x^5+x^3+x^2x^1+1$, which is primitive. However when the IV bit 0 is 0, we will instead get $x(x^4+x^2+x^2x^1$ which can have an x factored out of it. So we cannot reliabley say the key registery feedback function is primitvie either.
-
+The key register feeback function is more difficult to anayls because of its use of a bit from the IV register. However we can take advantage of the fact that we know the IV register will quickly become filled with zeros. When this occurs the  AND gate for the key and IV register 0 bits will always give 0. As such it can be disregarded, leaving us with the feedback function $x^4+x^3+x^2x^1$. This is again not listen in Dubrova's paper and so is not maximal.%double check this, some reverse/compliment polys werent listed
 
 %double check 8
 \begin{figure}[h]
@@ -188,57 +191,127 @@ Grain-128a\cite{Grain128aSpec} is a revised version the Grain cipher that was su
 \subsection{Specification}
 Grain is a shift register based cipher, featuring two 128 bit registers. it has a 128 bit key which is initialised in its first register and a 96 bit IV which fills the beginning 96 bits of the second register.
 
+It makes use of 3 main functions: f to feedback the non-linear register, g to feedback the linear register and h to produce the output bit.
+
 The first 250 bit of its output must be discarded before it can be used to encrypt text.
-\textit{Note: Add some discussion of design}
 %diagram
 \subsubsection{Analysis}
+The most obvious feature is the presence of 128 bit registers to hold 128 bit keys and IVs. This is a major change from the previous version of Grain which had only 80 bit registers, which is on the border of being feasible to brute force. %see ref
 
+The feedback function for the linear register is primitive, guaranteeing it a maximal cycle. However during the initialisation phrase it the feedback is additionally XOR'd with the discarded output bits, helping to make the state of the register at the end of initialisation unpredictable and dependant on the key. Using this output bit as feedback during production clokcing would potentialy lead to a reduction in the ciphers cycle as nonlinear feedback functions are much more difficult to prove maximal.
 
-\subsection{Implementation}
-\subsubsection{Efficiency}
-The key and IV were stored as two 64 bit integers each, with the first integer representing bits 0-63 and the second 64-127. The alternative method would of been to store each as an array of 128 elements, and treating each element as a bit. This would of required 128 bytes as a byte is the smallest available type in C, verses the 4 bytes used by two 64 bit integers.
+The linear register obviously cannot be used on its own because of the attacks mentioned in the shift register section above. The non-linear register can be used to prevent this through its use of AND gates to avoid linarity in its algerbraic description. However, by making use of a non-linear feedback function  the convience of easily proving the outut is a maximal cycle via use of primitive polynomial is removed.
 
-Although this saves us 128-8=120 bytes of space, it does make some XOR operations slower. Rather simply XOR the bit elements, which takes 6 operations, we must first extract the required bits from their integers and then XOR them, which take 12 operations.
-\begin{verbatim}
-lfsr[0]^lfsr[7]^lfsr[38]^lfsr[70]^lfsr[81]^lfsr[96]
-\end{verbatim}
-verses
-\begin{verbatim}
-1 & ((lfsr[0] << 0) ^ (lfsr[0] << 7) ^ (lfsr[0] << 38) ^ (lfsr[1] << 70-64) ^
- (lfsr[1] << 81-64) ^ (lfsr[1] << 96-64))
-\end{verbatim}
+Combining the non linear feedback with the linear output, the best of both can be had. The linear register provides a guranted non-repeating sequecnce, helping to hide any repetition from the non linear register. And the non linear register provides protection against linearity attacks.
+
+It is important to note the use of XOR gates with combining the various parts of Grain. This is a good chocie because of its unbiased nature: for its 4 possible inputs, 2 gives a values of 1 and 2 gives a value of 0. Contrast tthis with the used of an AND gate in combinaing the 0 bits of dummy ciphers registers: because the AND gate is heaily biased towards 0 (3 out of 4 inputs), this is reflacted in it output. This property can make the resulting combination of 2 primitives more vunerable then either of the component parts feeding into it.%when
+
+%h funcion n stuff
+
 \chapter{Cube Attack}
 \section{Overview}
-The Cube Attack's basic premise is to derive a set of linear equations made up of key bit values. These equations are computed offline by the attacker setting their own key and IV values. Once N equations have been found involving N or less key variables the online phrase can begin.
+The Cube Attack is an algerbraic attack, meaning it uses the equations representing a ciphers output bits to derive the values of the key bits. The difficulty is that in a modern cipher that equation will be to long to be described/analyse in its entirety, so instead certain qualities of the equation are discovered by obserivng the change of output based on changing input. To do this, the Cube attack relies on the IV value being public and preferable manipuable, assumptions that are widley deemed stanard. %ref
 
-Then during the online phrase the attacker submits IV values to cipher and equates the output bits to the appropriate linear equation. When all equations values have been found, the equations variables can be solved by standard methods to solve sets of linear equations.
+The Cube Attack's basic premise is to derive a set of linear equations made up of key bit values on one side and a single bit on the other. These equations are computed offline by the attacker by setting their own key and IV values repeatdly.
+
+Once N equations have been found involving N or less key variables the online phrase is run to find the bit values that equates to each equation and allows the entire system to be solved by any standard technique for solving systems of linear equations. %ref
+This is most easily done when the attacker can choose IV values themselves, as a large number of specific values are required.
 \subsection{Sum of IV bits}
 The first key observation that allows the cube attack to take place is the formulae:
-\begin{equation} \label{eq:superpoly}
+\begin{equation} \label{eq:poly_sum}
 p_I = \sum\limits_{V \in C_I} p_V 
 \end{equation}
 Note: p is used to mean polynomial. $p_V$ is polynomial given by V, $p_I$ is polynomial of I.
 \subsubsection{Explanation}
-$C_I$ represents what is termed a cube of initialisation vectors. An attack would pick some IV bits, say 0, 60, 90. There are $2^3$ combinations of values that could be used for these bits. If you imagine a set of axis, one for each bit, then the combinations of vectors would form a 3 dimensional cube of vectors representing combinations of values. If this is a strange idea, then only you need only think of it as a set of $2^N$ combinations of values, the actual cube idea is only an aide.
+$C_I$ represents what is termed a cube of initialisation vectors. An attack would pick some IV bits, say 0, 60, 90. There are $2^3$ combinations of values that could be used for these bits. If you imagine a set of axis, one for each bit, then the combinations of vectors would form a 3 dimensional cube of vectors representing combinations of values. If this is a strange idea, then only you need only think of it as a set of $2^N$ combinations of values, the notion of a cube is only an aide. All IV values not in $C_I$ should be set to 0 and an arbitrary key can be used.
 
-$C_I$ represents this set. $p_V$ represents the polynomial equation for the first output bit of a cipher when its IV is set to $V \in C_I$. Summing all these polynomials gives you polynomial $p_I$. Although the algebraic forms of each $p_V$ (and so $p_I$) are unknown, you do know their numeric values, the value of the first output bit.
+$C_I$ represents this set. $p_V$ represents the polynomial equation for the first output bit of a cipher when its IV is set to $V \in C_I$, which is equal to an unknown polynomial as per algebraic representation of ciphers in the introduction.
+
+If you sum each of the polynomials together the result is $p_I$. Importantly, because the value of each individual polynomial is known (the value first output bit), they can be summed without knowing the algebraic form of the polynomials (and so the form of their sum) which is expensive to compute.
 %reference proof
+
 \subsection{Superpoly}
-The second key observation is that the form of $p_I$ is known to be:
+The second key observation is that the form of the polynomial $p_I$ is known to be:
 \begin{equation} \label{eq:GFpowers}
 pI = tIpS(I)+q(x1...xn)=pS(I)
 \end{equation}
-The sum polynomial $p_I$ from the previous equation can be put in the above form, and then simplified.
-$p_S(I)$ is dubbed the "superpoly" in the original cube attack paper. Its important property is that it is guaranteed to contain only key bits as terms, not IV bits. This holds because $t_I$ is a term containing all IV bits that are being set by the attacker. All terms in $p_I$ that contain $t_I$ and other IV bits will cause the term to be set to 0. Thus the only terms in $p_S(I)$ not set to 0 will be made of key bits only. The original paper proves that q(x1...xn) cancels \cite{DinurShamir2009}.
+$p_S(I)$ is dubbed the "superpoly" in the original cube attack paper. This equation allows the representation of the summed polynomial to be simplified significantly. Using the same set of public variables as in $C_I$ in equation 
+\ref{eq:poly_sum}, $tIpS(I)$ consists of all the terms of $pI$ which contained  every public variable from $C_I$ being used in the sum. If $C_I={0, 60, 90}$ then  $tI = IV_{0}IV_{60}IV_{90}$
+
+This factorising of $pI$ means that every term left in $q(x_1...x_N)$ is missing at least 1 element of $C_I$, or else it would of been factorised into $tIpS(I)$. This then allows the elimination of $q(x_1...x_N)$ as follows:
+
+To prove that the $q$ cancels, we must acknowledge that its term can be classified into 3 types: those with no IV bits, those with IV bits no in $C_I$ and those with a subset of $C_I$'s bits.
+
+No IV bits:
+These term will be composed of key bits only, and which will be unchanging because the key is constant. As such, every term will have a constant value of 0 or 1. If 0 it can be ignored. If 1 it will cancel out because it will be summed $2^N$ times, once for every polynomial and as observed earlier, summing a boolean variable with its self an even number of times gives 0.
+
+IV bits not in $C_I$:
+All bits not in $C_I$ are set to 0. As such, any term containing them as a factor will also be set to 0.
+
+Subset of $C_I$ bits:
+Let us start with the basic case of a term missing a single $C_I$ bit. In the case of $C_I={0, 60, 90}$ this could be $IV_0IV_{60}$, which we will call term T. There would be $2^3$ polynomials to sum in this case, but the value of our term would be mirrored in in $2^2$ of them. $2^2$ combinations where $IV_{90}=0$ and $IV_{90}=1$. For example the 2 combinations $IV_0, IV_{60}=1, IV_{90}=1$ and $IV_0, IV_{60}=1, IV_{90}=0$ are identical for T. This means that the $2^2$ values for which $IV_{90}=0$ will cancel the $2^2$ values where $IV_{90}=1$.
+
+The above demonstrates that $pI=tIpS(I)$. To further eliminate $tI$ a further observation is required. There is only 1 polynomial when all elemnts of $CI$ are set to 1 and tI by definition contains every element of $CI$. For every other polynomial being summed at least 1 IV bit in $CI$ will be set to 0 which results in the zeroing of that polynomials pS(I). THus only 1 $pS(I)$ is not zeroed, giving $pI=pS(I)$.
+
+This is a much simplified form of $pI$ because so many terms have been cancelled. $pS(I)$ is known to contain only key bits, exactly the information we wanted, though the exact key bits and their combinations are as yet unknown.
+
 \subsubsection{Max Terms}
-Any set of IV bits such that $p_S(I)$ is linear is termed a Max Term. These are the most useful to the attacker because finding the terms of a linear $p_S(I)$ is trivial: Compute $p(I)$ multiple times, first with all keys bits set to 0, and then with each single key bit set to 1 in turn. All key bits set to 0 will be removed form the $p_S(I)$ equation, meaning $p_I$ will only equal 1 if the key bit is present as a term. Once all terms have been found, the attacker has a linear equation and can choose different IVs in an attempt to find more.
-\section{Improvements}
+The next step is to deduce what the form of the polynomail $pS(I)$ is. Polynomials with only linear terms are preferable and these are dubbed "Max Terms" in the context of the cube attack. Though quadratic terms are acceptable also. The complexity of deducing cubic and high order terms is high enough that they are often not considered worth the effort.%ref
+
+$pS(I)$ is known to be composed on only key bits (and a possible constant), so its form must be found by setting the key to various helpful values. This stage of the attack must there for be done offline where the value of the key can be known.
+
+As established above, we can calculate the value $pS(I)$ equates to by summing the first key stream bits of a cipher for a single key over all combinations of a set of IV bits. Whilst the exact form of $pS(I)$ is decided by the chocie of IV values, the resulting $pI$ is decicied by the key's value.
+
+The first step is to zero all the key bits and calculate $pS(I)$. This will cancel all terms of $pS(I)$ involving key bits which is all of them execpt for the polynomials constant. Whatever value $pI$ comes to is that value of that constant. For example, assuming $pS(I)$ has the form $k_{30}+k_{50}+1$. If the key has been zeroed then $pS(I)=k_{30}+k_{50}+1=0+0+1=1=pI$. If the form was instead $k_{30}+k_{50}$ then $pS(I)=k_{30}+k_{50}=0+0=0=pI$.
+
+Having established the value of $pS(I)$'s constant, the values of the terms can be evaluated. Testing for linear terms is the easiest: Construct a key where a single bit is 1 and all others are 0 ,then calculate the superpoly of the chosen $C_I$ with this key. As only a single key bit is non-zero all terms in the super poly will be zeroed unless they are constant or contain the chosen key bit and only that chosen key bit. Thus if $pS(I)+C$ where C is the constant found earlier will be 1 if the chosen keybit is a term and 0 if not.
+
+For example:$pS(I)=k_{30}+k_{50}$. Key bit 50 is set to 1 and all others set to 0. $pS(I)=k_{30}+k_{50}=0+1+1=0$. The constant hides the terms presence, but we can account for it because it was discovered earlier by using a completly zeored key: $pS(I)+1=0+1=1$, proving that key bit 50 is a linear term.
+
+Performing this test N times for each bit in a key length N will give all the linear terms in the super poly. However, should a higher order term like a quadratic be present, it will remain hidden. This is because only a single bit is set at any given time so a term comprising of 2 or more bits such as $k_n*k_m$ will result in either $k_n$ or $k_m$ always canceling the term.
+
+This can be solved by repeating the above process but searching all combinations of 2 key bits instead of 1. The draw back is the exponetial increasing in time that this takes. For example, Grain-128a has a 128 bit key, requiring 128 superpolys to be calculated to find all linear terms. To find all quadratic terms 8128 superpolys must be searched*footnote-on-combinations. Later we discuss how this can be reduced by re-using previously calculated superpolys but it remains un-reasonable to search for higher order terms.
+\subsubsection{Proving linearity}
+Exhaustively searching for terms of all high orders in a super poly is infeasible. However, this attacks aim of providing a system of linear equations to be solved relies on the equations forms being completly defined. As such we must test that the highest order term in a super poly is equal to or less then the highest order term we have searched for (linear, quadratic etc).
+
+For Max terms (linear super polys) this is easy. A basic property of a linear function is that $f(x+y)=f(x)+f(y)$.%ref
+As such, we can attempt to prove a given polynomial for $C_I$ is not linear by choosing 2 key at random. Let the function f be the our cipher. If $f(key_1)\oplus f(key_2) \neq f(key_1 \oplus key_2)$ then it is not linear.
+
+Unfortunately this method can only disprove a super polys linearity, not prove it. Thus we must choose a statistically significant number of test such that the chances of a non-linear function passing them all is small.%add statics knoweldge
+
+\section{Basic Implementation}
+\subsection{Method}
+To implement a basic form of the cube attack, all that needs to be done is combine the methods for computing the linear parts of a super poly and testing their linearity.
+
+The implementation has 4 main functions listed below.
+
+\subsubsection{find max terms}
+The main purpose of this function is to keep track of which IV combinations have been tried. It is sometimes possible to intelligently target specific IV bit combinations based on heuristics of a cipher to increase the likely hood of finding a max term, but this implementation simply brute forces all IV combinations; it tries each IV bit on its own, then all combinations of 2 bits, then 3 and so on.
+
+For each IV it first tests the linearity of their super poly. If and only if that test is past does it attempt to find any linear terms in the super poly. If a super poly passes the linearity test, but no linear terms are found, it discards that Max term candidate. If this occurs, it means that the super poly was a constant and contained no key bits to help the ultimate system of linear equations. This often occurs if the number of IV bits tried is too large, so trying to factor the polynomial into the form $tIpS(I)+q(x_1..x_n)=tI(0)+q(x_1..x_n)$.
+
+\subsubsection{is super poly linear}
+This simply performs the simple linearity test explained earlier. First $pI$ is computed for a completely zeroed key, providing the constant for the super polys. This is done once and reused for each test as it is not key dependant.
+
+Then 2 keys are randomly generated, summed together and the sum of the individual key's $pI$'s compared to the pre-summed key's $pI$. Care is taken to combine the pre-summed super poly with the zeroed keys super poly.
+
+The reason for this is that all the superpolys share the same key-independent constant. As such, when the individual super polys are summed their constants cancel. If that constant has a value of 1, then the pre-summed super poly must have its constants cancelled as well.
+
+\subsubsection{Construct Max Terms}
+Again, this function does much the same as the description of finding max terms above. For each bit in the key it computes the super poly and if its 1 (after accounting for constants), register that bits linear term as present.
+\subsubsection{get super poly bit}
+This is the function that does the real work. As input it takes a key and the set of IV bits you want to find the super polynomial for, and return the super poly value.
+
+This is done by starting at 0 and going up to $2^N$ where N is the number of IV bits being used. The IV for the current cipher run is set by masking the chosen IV bits with the number. The cipher is then run and its first output bit run added to those found so far.
+
+The final sum of cipher bits is equal to $pI$ and there for the super poly $pS(I)$.
+\section{Against Dummy Cipher}
+\subsection{Results}
 \section{Against Grain-128a}
 \subsection{Method}
 \subsection{Results}
-\section{Against Salsa20}
-\subsection{Method}
-\subsection{Results}
+\section{Improvements}
+%etc results
 \chapter{Conclusion}
 \bibliographystyle{plain}
 \bibliography{bib}
