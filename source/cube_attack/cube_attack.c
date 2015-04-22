@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include "cube_attack.h"
 #include "../cipher_io/useful.h"
@@ -20,7 +21,7 @@
 //9) solve linear equations
 
 const int MAX_TERM_LIMIT = 10;
-const int DIMENSION_LIMIT = 4;
+const int DIMENSION_LIMIT = 2;
 
 //change this to reuse keys as suggested in mobius paper
 //instead of (key1 key2), (key3,key4) do (key1, key2), (key1, key3)
@@ -31,7 +32,7 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension, const Cipher_info *
     uint64_t zeroed_key[2] = {0, 0};
     int zeroed_key_poly = get_super_poly_bit(zeroed_key, cube_axes, cube_dimension, cipher_info);
     //number of tests is arbitrary. Pick a better number based (or change test method) based on research papers
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         uint64_t *key1 = generate_key(cipher_info->key_size);
         uint64_t *key2 = generate_key(cipher_info->key_size);
         uint64_t combined_keys[] = {key1[0] ^ key2[0], key1[1] ^ key2[1]};
@@ -82,12 +83,16 @@ int increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info
 // go to 1)
 
 Max_term * find_max_terms(int max_term_limit, size_t dimension_limit, const Cipher_info * const cipher_info) {
-    int *dimensions = calloc(dimension_limit, sizeof(int));
+    int *dimensions = calloc(dimension_limit+1, sizeof(int));
     int dimension_count = 1;
     Max_term * max_terms = NULL;
-    while (HASH_COUNT(max_terms) < max_term_limit && dimension_count < dimension_limit) {
+    while (HASH_COUNT(max_terms) < max_term_limit && dimension_count <= dimension_limit) {
+        clock_t time_taken = clock();
         if (is_super_poly_linear(dimensions, dimension_count, cipher_info)){
+            printf("linear test took : %d\n", clock()-time_taken);
+            clock_t max_term_construct_time = clock();
             Max_term *potential_max_term = construct_max_term(dimensions, dimension_count, cipher_info);
+            printf("max term construction took: %d\n", clock()-max_term_construct_time);
             int added = 0;
             if (potential_max_term->numberOfTerms > 0) {
                 if(add_max_term(&max_terms, potential_max_term, cipher_info->iv_size)){
@@ -99,7 +104,42 @@ Max_term * find_max_terms(int max_term_limit, size_t dimension_limit, const Ciph
                 free_max_term(potential_max_term);
             }
         }
+        printf("Testing IV for maxterm took overall: %d\n", clock()-time_taken);
         increase_dimensions(dimensions, &dimension_count, cipher_info);
+    }
+    printf("ended\n");
+    free(dimensions);
+    return max_terms;
+}
+
+Max_term * find_max_terms_guessing(int max_term_limit, size_t dimension, int max_number_of_tries, const Cipher_info * const cipher_info) {
+    srand(1);
+    Max_term * max_terms = NULL;
+    int number_of_tries = 0;
+    int* dimensions = malloc(dimension*sizeof(int));
+    while (HASH_COUNT(max_terms) < max_term_limit && number_of_tries < max_number_of_tries) {
+        for(int i =0;i<dimension;i++){
+            dimensions[i] = rand()%cipher_info->iv_size;
+        }
+        clock_t time_taken = clock();
+        if (is_super_poly_linear(dimensions, dimension, cipher_info)){
+            printf("linear test took : %d\n", clock()-time_taken);
+            clock_t max_term_construct_time = clock();
+            Max_term *potential_max_term = construct_max_term(dimensions, dimension, cipher_info);
+            printf("max term construction took: %d\n", clock()-max_term_construct_time);
+            int added = 0;
+            if (potential_max_term->numberOfTerms > 0) {
+                if(add_max_term(&max_terms, potential_max_term, cipher_info->iv_size)){
+                    printf("max_terms_list->max_term_count %d\n", HASH_COUNT(max_terms));
+                    added = 1;
+                }
+            }
+            if(!added){
+                free_max_term(potential_max_term);
+            }
+        }
+        printf("Testing IV for maxterm took overall: %d\n", clock()-time_taken);
+        number_of_tries++;
     }
     printf("ended\n");
     free(dimensions);
@@ -192,4 +232,30 @@ int get_super_poly_bit(uint64_t *key, int *iv_cube_axes, int cube_dimension, con
         debug_print("superbit: %d for iv:\n", output[0]);
     }
     return super_poly_bit;
+}
+
+void print_max_terms(Max_term *max_terms, char* fileOutPath, const Cipher_info * const cipher_info){
+    FILE *outFp = fopen(fileOutPath, "w+");
+    fprintf(outFp, "number of maxterms found: %d\n", HASH_COUNT(max_terms));
+    fputs("notes all terms form a linear equations (i.e. only maxTerms are found)\n", outFp);
+    for(Max_term* current_max_term=max_terms; current_max_term != NULL; current_max_term=current_max_term->hh.next) {
+        fputs("iv: ", outFp);
+        uint64_t *iv = current_max_term->iv;
+        printf("iv pre file print: ");
+        printBits(4 * 2, iv);
+        for (int bit_index = 0; bit_index < cipher_info->iv_size; bit_index++) {
+            fputc('0' + get_bit(iv, bit_index), outFp);
+        }
+        fputc('\n', outFp);
+        fputs("terms: ", outFp);
+        fprintf(outFp, " (%d)", current_max_term->numberOfTerms);
+        for (int term = 0; term < current_max_term->numberOfTerms; term++) {
+            fprintf(outFp, "%d ", current_max_term->terms[term]);
+        }
+        fputc('\n', outFp);
+        fputs("PlusOne: ", outFp);
+        fputc('0' + current_max_term->plusOne, outFp);
+        fputc('\n', outFp);
+    }
+    fclose(outFp);
 }

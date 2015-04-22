@@ -9,7 +9,7 @@
 const int MIN_NUM_AXES = 0;
 
 Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const Cipher_info * const cipher_info) {
-    int *dimensions = calloc(dimension_limit, sizeof(int));
+    int *dimensions = calloc(dimension_limit+1, sizeof(int));
     Max_term *max_terms = NULL;
     uint64_t zeroed_key[2] = {0, 0};
     for (int i = 0; i < dimension_limit; i++) {
@@ -23,7 +23,7 @@ Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const C
         printf("linear test done\n");
         Max_term * cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
         printf("terms done\n");
-        for(uint64_t mask=1;mask<power(2, dimension_limit);mask++){
+        for(uint64_t mask=1;mask<HASH_COUNT(cube_max_terms);mask++){
             printf(".");
             uint64_t * iv = iv_from_mask(mask, dimensions, dimension_limit, cipher_info->iv_size);
             Max_term * current_max_term = get_max_term(&cube_max_terms, iv, cipher_info->iv_size);
@@ -54,6 +54,69 @@ Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const C
     printf("overall max term count %d\n", HASH_COUNT(max_terms));
     return max_terms;
 }
+
+int* random_picker(int lower, int upper){
+    int range = upper-lower;
+    int* list = malloc(sizeof(int)*(range-1));
+    for(int i=lower;i<upper; i++){
+        list[i] = i;
+    }
+    for(int g=0;g<2;g++) {
+        for (int i = lower; i < upper; i++) {
+            int first = rand()%range;
+            int second = rand()%range;
+            int temp = list[first];
+            list[first] = list[second];
+            list[second] = temp;
+        }
+    }
+    return list;
+}
+
+Max_term * mobius_find_max_terms_guessing(int max_term_limit, size_t dimension_limit, int max_number_of_tries, const Cipher_info * const cipher_info) {
+    srand(1);
+    int *dimensions = calloc(dimension_limit, sizeof(int));
+    Max_term *max_terms = NULL;
+    uint64_t zeroed_key[2] = {0, 0};
+    int number_of_tries = 0;
+    while (HASH_COUNT(max_terms) < max_term_limit && number_of_tries < max_number_of_tries) {
+        printf("num of tries %d\n", number_of_tries);
+        int * random_dim = random_picker(0, cipher_info->iv_size);
+        for (int i = 0; i < dimension_limit; i++) {
+            dimensions[i] = random_dim[i];
+            printf("i %d\n", i);
+        }
+        free(random_dim);
+        uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, MIN_NUM_AXES, zeroed_key, cipher_info);
+        printf("zero poly done\n");
+        uint64_t *linear_results = mobius_is_super_poly_linear(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+        printf("linear test done\n");
+        Max_term * cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
+        printf("terms done\n");
+        for(uint64_t mask=1;mask<HASH_COUNT(cube_max_terms);mask++){
+            printf(".");
+            uint64_t * iv = iv_from_mask(mask, dimensions, dimension_limit, cipher_info->iv_size);
+            Max_term * current_max_term = get_max_term(&cube_max_terms, iv, cipher_info->iv_size);
+            free(iv);
+            //delete from previous hash before adding it to the next
+            //because both make use of the same struct fields hh
+            HASH_DEL(cube_max_terms, current_max_term);
+            int is_valid_max_term = current_max_term->numberOfTerms > 0 && get_bit(linear_results, mask) == 1;
+            if(is_valid_max_term && add_max_term(&max_terms, current_max_term, cipher_info->iv_size)){
+                printf("\n");
+                printf("max_terms->max_term_count %d\n", HASH_COUNT(max_terms));
+            }else{
+                free_max_term(current_max_term);
+            }
+        }
+        free(zeroed_key_poly);
+        free(linear_results);
+        number_of_tries++;
+    }
+    //free(dimensions);
+    printf("overall max term count %d\n", HASH_COUNT(max_terms));
+    return max_terms;}
+
 
 //0 means is not linear
 //1 means it is

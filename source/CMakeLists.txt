@@ -18,3 +18,8 @@ add_executable(FYP_Stream_Cipher_Cube_Attack attack_main.c)
 target_link_libraries(FYP_Stream_Cipher_Cube_Attack cube_attack)
 target_link_libraries(FYP_Stream_Cipher_Cube_Attack ciphers)
 target_link_libraries(FYP_Stream_Cipher_Cube_Attack cipher_io)
+
+add_executable(meta_cube meta_attack.c)
+target_link_libraries(meta_cube cube_attack)
+target_link_libraries(meta_cube ciphers)
+target_link_libraries(meta_cube cipher_io)

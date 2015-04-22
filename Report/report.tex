@@ -18,21 +18,21 @@
 \maketitle
 \tableofcontents
 \section{Abstract}
-A cipher making use of cryptographically secure pseudo-random number generators in order to encrypt/decrypt data is classified as a stream cipher. In this paper, we talk about (and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack called the "Cube Attack" to it.
+A cipher making use of cryptographically secure pseudo-random number generator in order to encrypt/decrypt data is classified as a stream cipher. In this paper, we talk about (and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack called the "Cube Attack" to it.
 
-It was observed that existing papers assume a good level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to a bachelor level alongside basic algebra should be enough.
+It was observed that existing papers assume a high level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to a bachelor level alongside basic algebra should be enough.
 \chapter{Introduction}
-In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". It is an algebraic attack which relies on the attacker being able to set some variables in the ciphers initial state and observe is first few bits of output. What makes the attack particularly interesting is its generality, the exact mechanism of the cipher need not be known and can be treated as a black box where only the input and output need to be observed.
+In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". It is an algebraic attack which relies on the attacker being able to set some variables in a ciphers initial state and observe its first few bits of output. What makes the attack particularly interesting is its generality, the internal workings of the cipher need not be known and it can be treated as a black box where only the input and output need to be observed.
 
 It has been applied quite successfully to weakened versions of the Trivium cipher, which was submitted to the Hardware category of the eSTREAM project alongside Grainv1\cite{eStreamPort}. Additionally a variation of the cube attack, known as the "Dynamic Cube Attack" has been applied successfully to both Grainv1 and Grain-128.
 
 In order to aid explanation of the attack, we focus on its applicability to two ciphers. The first, termed "DummyCipher" for this paper, is a toy example designed to make it easier to follow the attack manually. This serves to introduce some fundamentals of stream ciphers as well as the attack.
 
-Secondly, Grain-128a is introduced. The first version of the Grain cipher was invented in 2006 by Hell, Johansson and Meier \cite{Grain128aSpec} and submitted to the eSTREAM project. Having undergone several alteration to strengthen it, Grain-128a is the latest version, featuring a 128 bit key, 128 bit initialisation vector (IV) and support for authentication (though authentication is not examined in this paper).
+Secondly, Grain-128a is introduced. The first version of the Grain cipher was invented in 2006 by Hell, Johansson and Meier \cite{Grain128aSpec} and submitted to the eSTREAM project. Having undergone several alterations to strengthen it, Grain-128a is the latest version, featuring a 128 bit key, 128 bit initialisation vector (IV) and support for authentication (though authentication is not examined in this paper).
 
 This paper uses the Grain-128a cipher to highlight mechanisms that can be used to improve resistance to the cube attack and various artificial weaknesses are imposed on the cipher to this end. These include reducing the complexity of its feedback function and reducing the number of initialisation rounds run before output is produced.
 
-Finally there is a discussion of techniques such as the Möbius Transform that can be used to improve the Cube Attacks efficiency. The explanation is further enhanced by demonstrating its use on the implemented ciphers.
+Finally there is a discussion of techniques such as the Möbius Transform that can be used to improve the Cube Attacks efficiency. The explanation is enhanced by demonstrations on the implemented ciphers.
 
 \chapter{Background}
 \section{Stream Ciphers}
@@ -225,7 +225,7 @@ It is important to note the use of XOR gates with combining the various parts of
 
 \chapter{Cube Attack}
 \section{Overview}
-The Cube Attack is an algebraic attack, meaning it uses the equations representing a ciphers output bits, in this case to derive the values of the key bits. The difficulty is that in a modern cipher the equation will be to long to be described/analyse in its entirety, so instead certain qualities of the equation are discovered by observing the change of output based on changing input. To do this, the Cube attack relies on the IV value being public and preferable manipulable, assumptions that are widely deemed standard. %ref
+The Cube Attack is an algebraic attack, meaning it uses the equations representing a ciphers output bits, in this case to derive the values of the key bits. The difficulty is that in a modern cipher the equation will be too long to be described/analyse in its entirety, so instead certain qualities of the equation are discovered by observing the change of output based on changing input. To do this, the Cube attack relies on the IV value being public and preferably manipulable, assumptions that are widely deemed standard. %ref
 
 The Cube Attack's basic premise is to derive a set of linear equations made up of key bit values on one side and a computable value on the other. These equations are computed offline by the attacker by setting their own key and IV values repeatedly.
 
@@ -236,14 +236,34 @@ The first key observation that allows the cube attack to take place is the formu
 \begin{equation} \label{eq:poly_sum}
 p_I = \sum\limits_{V \in C_I} p_V 
 \end{equation}
-Note: p is used to mean polynomial. $p_V$ is polynomial given by V, $p_I$ is polynomial of I.
+p is used to mean polynomial. $p_V$ is the polynomial given by V, $p_I$ is polynomial of I. I is a given set of IV bits, and $C_I$ is the set of $I$ and all its subsets.
+
+Note: This is the equation that give sthe cube attack its name. $C_I$ can be seen as a N dimensional cube where N is the cardinality of $I$ and each axis measures the value of an element of $I$.
+
+Each subset of $I \in C_I$ can then be thought of as a vector in this cubes axis.
+
+If this is a strange idea, then only you need only think of it as a set of $2^N$ combinations of values, the notion of a cube is only an aide. 
+
+E.g. Let $I = {40, 30}$, $C_I$ forms a 2 dimensional cube (or a square). This will have 2 axis, the "40" axis and the "30" axis (equivalent to the x and y axis). ${40:1, 30:0}$ would be one valid vector.
+
+\begin{figure}[g]
+\centering{
+\resizebox{100mm}{!}{\input{./2d_cube_eg.pdf_tex}}
+\caption{Example when $I={30, 40}$ forming a 2-dimensional cube}
+\label{fig:2d_cube_eg}
+}
+\end{figure}
+
+
 \subsubsection{Explanation}
-$C_I$ represents what is termed a cube of initialisation vectors. An attack would pick some IV bits, say 0, 60, 90. There are $2^3$ combinations of values that could be used for these bits. If you imagine a set of axis, one for each bit, then the combinations of vectors would form a 3 dimensional cube of vectors representing combinations of values. If this is a strange idea, then only you need only think of it as a set of $2^N$ combinations of values, the notion of a cube is only an aide. All IV values not in $C_I$ should be set to 0 and an arbitrary key can be used.
+As stated above $C_I$ represents what is termed a cube of initialisation vectors. It is assumed that all IV values not in $C_I$ are set to 0. At this point the value of the key bits does not matter.
 
-$C_I$ represents this set. $p_V$ represents the polynomial equation for the first output bit of a cipher when its IV is set to $V \in C_I$, which is equal to an unknown polynomial as per algebraic representation of ciphers in the introduction.
+$p_V$ represents the polynomial equation for the first output bit of a cipher when its IV is set to $V \in C_I$, which is equal to an unknown polynomial as per algebraic representation of ciphers explained in the introduction.
 
-If you sum each of the polynomials together the result is $p_I$. Importantly, because the value of each individual polynomial is known (the value first output bit), they can be summed without knowing the algebraic form of the polynomials (and so the form of their sum) which is expensive to compute.
+If you sum each of these polynomials together the result is $p_I$. Importantly, because the value of each individual polynomial is known (the value first output bit), they can be summed without ever knowing their alerbraic form. This is important because the algebraic form is expensive to both compute and store.
 %reference proof
+
+E.g. Say $I={0,3}$ was chosen as an IV set by which to attack dummyCipher. To find $p_I$, the cipher must be run with the IV's ${{0}, {3}, {0,3}, {}}$, where only the bits mentioned are set to 1. $p_I$ is the sum (XOR) of the first bits produced by the cipher for each of these IV's. Note that although the key value if arbitrary it must remain constant for each cipher run.
 
 \subsection{Superpoly}
 The second key observation is that the form of the polynomial $p_I$ is known to be:
@@ -398,16 +418,18 @@ Additionally the feedback in this case is linear because it only involves additi
 \chapter{Results}
 \subsection{Cube Attack}
 \subsubsection{DummyCipher 0 initialisation clocks}
+Up to 5 IV bits (exhaustive)
 \begin{center}
-    \begin{tabular}{| l | l | l | l |}
+    \begin{tabular}{| l | l |}
     \hline
     IV & Superpoly Equation\\ \hline
     {0} & k0\\ \hline
     \end{tabular}
 \end{center}
 \subsubsection{DummyCipher 5 initialisation clocks}
+Up to 5 IV bits (exhaustive)
 \begin{center}
-    \begin{tabular}{| l | l | l | l |}
+    \begin{tabular}{| l | l |}
     \hline
     IV & Superpoly Equation\\ \hline
     {3} & k3\\ \hline
@@ -416,8 +438,9 @@ Additionally the feedback in this case is linear because it only involves additi
     \end{tabular}
 \end{center}
 \subsubsection{Grain-128a 0 initialisation clocks}
+%//inteligently estimate the max dimensions/init number we can go up to
 \begin{center}
-    \begin{tabular}{| l | l | l | l |}
+    \begin{tabular}{| l | l |}
     \hline
     IV & Superpoly Equation\\ \hline
     {0} & k0\\ \hline
