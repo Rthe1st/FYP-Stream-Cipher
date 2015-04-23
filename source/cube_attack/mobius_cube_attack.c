@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <dxgi.h>
 
 #include "../ciphers/cipher_helpers.h"
 #include "mobius_cube_attack.h"
@@ -8,7 +7,20 @@
 
 const int MIN_NUM_AXES = 0;
 
-Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const Cipher_info * const cipher_info) {
+//returns 1 if dimension count increase, 0 otherwise
+int mobius_increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info * const cipher_info, int skip_param) {
+    //dimensions elements should be in ascending order
+    for(int i =0;i<*dimension_count;i++){
+        dimensions[i]+=skip_param;
+    }
+    if(dimensions[*dimension_count-1] > cipher_info->iv_size-1){
+        return 1;
+    }else{
+        return 0;
+    }
+}
+
+Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const Cipher_info * const cipher_info, int skip_param) {
     int *dimensions = calloc(dimension_limit+1, sizeof(int));
     Max_term *max_terms = NULL;
     uint64_t zeroed_key[2] = {0, 0};
@@ -16,15 +28,15 @@ Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const C
         dimensions[i] = i;
     }
     while (HASH_COUNT(max_terms) < max_term_limit) {
-        printf("upper dimension %d\n", dimensions[dimension_limit - 1]);
+        //printf("upper dimension %d\n", dimensions[dimension_limit - 1]);
         uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, MIN_NUM_AXES, zeroed_key, cipher_info);
-        printf("zero poly done\n");
+        //printf("zero poly done\n");
         uint64_t *linear_results = mobius_is_super_poly_linear(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-        printf("linear test done\n");
+        //printf("linear test done\n");
         Max_term * cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-        printf("terms done\n");
-        for(uint64_t mask=1;mask<HASH_COUNT(cube_max_terms);mask++){
-            printf(".");
+        //printf("terms done\n");
+        for(uint64_t mask=1;mask<power(2, dimension_limit);mask++){
+            //printf(".");
             uint64_t * iv = iv_from_mask(mask, dimensions, dimension_limit, cipher_info->iv_size);
             Max_term * current_max_term = get_max_term(&cube_max_terms, iv, cipher_info->iv_size);
             free(iv);
@@ -33,8 +45,8 @@ Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const C
             HASH_DEL(cube_max_terms, current_max_term);
             int is_valid_max_term = current_max_term->numberOfTerms > 0 && get_bit(linear_results, mask) == 1;
             if(is_valid_max_term && add_max_term(&max_terms, current_max_term, cipher_info->iv_size)){
-                    printf("\n");
-                    printf("max_terms->max_term_count %d\n", HASH_COUNT(max_terms));
+                    //printf("\n");
+                    //printf("max_terms->max_term_count %d\n", HASH_COUNT(max_terms));
             }else{
                 free_max_term(current_max_term);
             }
@@ -46,7 +58,7 @@ Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const C
         //to correct this, come up with a system for heuistly finding good cubes
         //or searching exhustivly and remebering past sub cubes for reuse
         //increase_dimensions_fixed_limit(dimensions, dimension_limit, cipher_info);
-        if(increase_dimensions(dimensions, &dimension_limit, cipher_info)){
+        if(mobius_increase_dimensions(dimensions, &dimension_limit, cipher_info, skip_param)){
             break;
         }
     }
@@ -80,21 +92,21 @@ Max_term * mobius_find_max_terms_guessing(int max_term_limit, size_t dimension_l
     uint64_t zeroed_key[2] = {0, 0};
     int number_of_tries = 0;
     while (HASH_COUNT(max_terms) < max_term_limit && number_of_tries < max_number_of_tries) {
-        printf("num of tries %d\n", number_of_tries);
+        //printf("num of tries %d\n", number_of_tries);
         int * random_dim = random_picker(0, cipher_info->iv_size);
         for (int i = 0; i < dimension_limit; i++) {
             dimensions[i] = random_dim[i];
-            printf("i %d\n", i);
+            //printf("i %d\n", i);
         }
         free(random_dim);
         uint64_t *zeroed_key_poly = mobius_transform(dimensions, dimension_limit, MIN_NUM_AXES, zeroed_key, cipher_info);
-        printf("zero poly done\n");
+        //printf("zero poly done\n");
         uint64_t *linear_results = mobius_is_super_poly_linear(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-        printf("linear test done\n");
+        //printf("linear test done\n");
         Max_term * cube_max_terms = mobius_construct_max_terms(zeroed_key_poly, dimensions, dimension_limit, cipher_info);
-        printf("terms done\n");
-        for(uint64_t mask=1;mask<HASH_COUNT(cube_max_terms);mask++){
-            printf(".");
+        //printf("terms done\n");
+        for(uint64_t mask=1;mask<power(2, dimension_limit);mask++){
+            //printf(".");
             uint64_t * iv = iv_from_mask(mask, dimensions, dimension_limit, cipher_info->iv_size);
             Max_term * current_max_term = get_max_term(&cube_max_terms, iv, cipher_info->iv_size);
             free(iv);
@@ -103,8 +115,8 @@ Max_term * mobius_find_max_terms_guessing(int max_term_limit, size_t dimension_l
             HASH_DEL(cube_max_terms, current_max_term);
             int is_valid_max_term = current_max_term->numberOfTerms > 0 && get_bit(linear_results, mask) == 1;
             if(is_valid_max_term && add_max_term(&max_terms, current_max_term, cipher_info->iv_size)){
-                printf("\n");
-                printf("max_terms->max_term_count %d\n", HASH_COUNT(max_terms));
+                //printf("\n");
+                //printf("max_terms->max_term_count %d\n", HASH_COUNT(max_terms));
             }else{
                 free_max_term(current_max_term);
             }
@@ -158,6 +170,10 @@ uint64_t *mobius_is_super_poly_linear(uint64_t *zeroed_key_super_poly, int *cube
             free(key_2_superpolys);
             if (all_results_non_linear == power(2, cube_dimension)) {
                 free(key_1_superpolys);
+                for (int i = 0; i < number_of_keys; i++) {
+                    free(keys[i]);
+                }
+                free(keys);
                 return results;
             }
         };
@@ -173,14 +189,20 @@ uint64_t *mobius_is_super_poly_linear(uint64_t *zeroed_key_super_poly, int *cube
 Max_term* mobius_construct_max_terms(uint64_t *zeroed_super_polys, int *dimensions, int dimension_count, const Cipher_info * const cipher_info) {
     uint64_t term_key[2] = {0, 0};
     Max_term *max_terms = NULL;
+    //printf("hash cnt at start of con %d\n", HASH_COUNT(max_terms));
     //start at one to avoid repeatedly calculating poly for no iv axes
     for (int g = 1; g < power(2, dimension_count); g++) {
         Max_term *max_term = malloc(sizeof(Max_term));
         max_term->iv = iv_from_mask(g, dimensions, dimension_count, cipher_info->iv_size);
+        //printf("iv[0] %d iv[1] %d\n",max_term->iv[0], max_term->iv[1]);
         max_term->terms = malloc(sizeof(int) * cipher_info->key_size);
         max_term->numberOfTerms = 0;
         max_term->plusOne = get_bit(zeroed_super_polys, g);
-        add_max_term(&max_terms, max_term, cipher_info->iv_size);
+        int nopreexist = add_max_term(&max_terms, max_term, cipher_info->iv_size);
+        /*if(nopreexist == 0){
+            printf("already existeds\n");
+        }*/
+        //printf("hascount size at g %d, size %d\n", g, HASH_COUNT(max_terms));
     }
     for (int key_bit = 0; key_bit < cipher_info->key_size; key_bit++) {
         //increase the key bit that's set to 1
@@ -188,7 +210,9 @@ Max_term* mobius_construct_max_terms(uint64_t *zeroed_super_polys, int *dimensio
         term_key[1] = 0;
         set_bit(term_key, 1, key_bit);
         uint64_t *key_super_poly = mobius_transform(dimensions, dimension_count, MIN_NUM_AXES, term_key, cipher_info);
+        //printf("hash count %d power(2, dim) %d\n", HASH_COUNT(max_terms), power(2, dimension_count));
         for (int mask = 1; mask < power(2, dimension_count); mask++) {
+        //for (int mask = 1; mask < power(2, dimension_count); mask++) {
             uint64_t* iv = iv_from_mask(mask, dimensions, dimension_count, cipher_info->iv_size);
             Max_term *current_max_term = get_max_term(&max_terms, iv, cipher_info->iv_size);
             if (get_bit(key_super_poly, mask) + get_bit(zeroed_super_polys, mask) == 1) {

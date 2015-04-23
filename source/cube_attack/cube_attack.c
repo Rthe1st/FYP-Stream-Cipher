@@ -64,7 +64,7 @@ int increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info
     }
     //if no elements can be increased, more dimensions are needed
     (*dimension_count)++;
-    printf("increasing to %d dimensions\n", *dimension_count);
+    //printf("increasing to %d dimensions\n", *dimension_count);
     for (int i = 0; i < *dimension_count; i++) {
         dimensions[i] = i;
     }
@@ -188,9 +188,9 @@ Max_term * make_max_term(uint64_t * iv, int* terms, int plus_one, int number_of_
 
 int add_max_term(Max_term ** list, Max_term* max_term, int iv_size){
     Max_term * existing_max_term;
-    HASH_FIND(hh, *list, max_term->iv, (iv_size/64)+1, existing_max_term);
+    HASH_FIND(hh, *list, max_term->iv, sizeof(uint64_t)*((iv_size/64)+1), existing_max_term);
     if(existing_max_term == NULL) {
-        HASH_ADD_KEYPTR(hh, *list, max_term->iv, (iv_size/64)+1, max_term);
+        HASH_ADD_KEYPTR(hh, *list, max_term->iv, sizeof(uint64_t)*((iv_size/64)+1), max_term);
         return 1;
     }else{
         return 0;
@@ -207,7 +207,7 @@ void delete_hash_and_free(Max_term ** max_terms){
 
 Max_term *get_max_term(Max_term **max_terms_list, uint64_t *iv, int iv_size){
     Max_term * max_term;
-    HASH_FIND(hh, *max_terms_list, iv, (iv_size/64)+1, max_term);
+    HASH_FIND(hh, *max_terms_list, iv, sizeof(uint64_t)*((iv_size/64)+1), max_term);
     return max_term;
 }
 

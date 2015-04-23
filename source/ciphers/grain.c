@@ -5,7 +5,7 @@
 #include "../cipher_io/useful.h"
 #include "grain.h"
 #include "cipher_helpers.h"
-
+#include "../generated/power_2_constants.h"
 
 int GRAIN_FULL_INIT_CLOCKS = 256;
 
@@ -40,22 +40,22 @@ Cipher_info *grain_info() {
 //register[1] is 2^128^....2^64
 
 void initialisation_clock(Grain_state *const state) {
-    int hBit = h(state->lfsr, state->nlfsr);// || NO_H;
+    int hBit = h(state->lfsr, state->nlfsr) || NO_H;
     debug_print("hbit: %d\n", hBit);
     int keyBit = preOutput(hBit, state->lfsr, state->nlfsr);
     debug_print("keybit: %d\n", keyBit);
     int linearFeedBack = linearFeedback(state->lfsr);
     debug_print("linear feedback bit: %d\n", linearFeedBack);
-    linearFeedBack = keyBit ^ linearFeedBack;// || NO_INIT_LFSR_F;
-    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0));// || NO_NLFSR_F;
+    linearFeedBack = keyBit ^ linearFeedBack || NO_INIT_LFSR_F;
+    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0)) || NO_NLFSR_F;
     debug_print("non linear feedback bit: %d\n", nonLinearFeedback);
-    nonLinearFeedback = keyBit ^ nonLinearFeedback;// || NO_INIT_NLFSR_F;
-    //if(!NO_LFSR_F){
+    nonLinearFeedback = keyBit ^ nonLinearFeedback || NO_INIT_NLFSR_F;
+    if(!NO_LFSR_F){
         updateSRState(state->lfsr, linearFeedBack);
-    //}
-    //if(!NO_NLFSR_F) {
+    }
+    if(!NO_NLFSR_F) {
         updateSRState(state->nlfsr, nonLinearFeedback);
-    //}
+    }
     debug_print("lfsr state:\n");
     print_uint64_t_array(state->lfsr, 2);
     debug_print("nlfsr state:\n");
@@ -63,16 +63,16 @@ void initialisation_clock(Grain_state *const state) {
 }
 
 int production_clock(Grain_state *const state) {
-    int hBit = h(state->lfsr, state->nlfsr);// || NO_H;
+    int hBit = h(state->lfsr, state->nlfsr) || NO_H;
     int keyBit = preOutput(hBit, state->lfsr, state->nlfsr);
-    int linearFeedBack = linearFeedback(state->lfsr);// || NO_LFSR_F;
-    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0));// || NO_NLFSR_F;
-    //if(!NO_LFSR_F){
+    int linearFeedBack = linearFeedback(state->lfsr) || NO_LFSR_F;
+    int nonLinearFeedback = nonLinearFeeback(state->nlfsr, get_bit(state->lfsr, 0)) || NO_NLFSR_F;
+    if(!NO_LFSR_F){
         updateSRState(state->lfsr, linearFeedBack);
-    //}
-    //if(!NO_NLFSR_F){
+    }
+    if(!NO_NLFSR_F){
         updateSRState(state->nlfsr, nonLinearFeedback);
-    //}
+    }
     debug_print("keybit: %d", keyBit);
     debug_print("lfsr state:\n");
     print_uint64_t_array(state->lfsr, 2);
@@ -82,8 +82,8 @@ int production_clock(Grain_state *const state) {
 }
 
 void updateSRState(uint64_t *shiftRegister, const int newBit) {
-    shiftRegister[0] = (shiftRegister[0] >> 1) | (power(2, 63) * get_bit(shiftRegister, 64));
-    shiftRegister[1] = (shiftRegister[1] >> 1) | (power(2, 63) * newBit);
+    shiftRegister[0] = (shiftRegister[0] >> 1) | (two_power_63 * get_bit(shiftRegister, 64));
+    shiftRegister[1] = (shiftRegister[1] >> 1) | (two_power_127_less_64 * newBit);
 }
 
 int nonLinearFeeback(const uint64_t *const nlfsr, const int lastLfsrBit) {
@@ -98,7 +98,7 @@ int nonLinearFeeback(const uint64_t *const nlfsr, const int lastLfsrBit) {
             ^(get_bit(nlfsr, 88) && get_bit(nlfsr, 92) && get_bit(nlfsr, 93) && get_bit(nlfsr, 95))
             ^(get_bit(nlfsr, 22) && get_bit(nlfsr, 24) && get_bit(nlfsr, 25))
             ^(get_bit(nlfsr, 70) && get_bit(nlfsr, 78) && get_bit(nlfsr, 82));
-    nonLinearBit = nonLinearBit;// || MAKE_NLFSR_LINEAR;
+    nonLinearBit = nonLinearBit || MAKE_NLFSR_LINEAR;
     return (linearBit ^ lastLfsrBit ^ nonLinearBit);
 }
 

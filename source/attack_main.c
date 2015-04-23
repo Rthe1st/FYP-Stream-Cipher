@@ -17,13 +17,13 @@ int main(int argc, char **argv) {
     Max_term *max_terms;
     Cipher_info * cipher_info = grain_info();//dummy_info();//
     //cipher_info->init_clocks=0;
-    cipher_info->init_clocks = 5;
+    cipher_info->init_clocks = 149;
     clock_t time_taken = clock();
     if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
-        max_terms = mobius_find_max_terms(50, 2, cipher_info);
+        max_terms = mobius_find_max_terms(50, 2, cipher_info, 2);
     }else{
         if(argc >= 2 && strcmp(argv[1], "-guess") == 0) {
-            max_terms = find_max_terms_guessing(50, 10, 1, cipher_info);
+            max_terms = find_max_terms_guessing(50, 2, 1, cipher_info);
         }else{
             max_terms = find_max_terms(50, 2, cipher_info);
         }

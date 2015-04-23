@@ -163,7 +163,7 @@ int test_mobius_find_max_terms(){
     cipher_info->init_clocks = 0;
     int dimension_limit = 1;
     int max_term_limit = 1;
-    Max_term* actual_max_terms = mobius_find_max_terms(max_term_limit,dimension_limit, cipher_info);
+    Max_term* actual_max_terms = mobius_find_max_terms(max_term_limit,dimension_limit, cipher_info, 1);
     printf("exp amt %d\n", expected_max_term_amount);
     int success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
     if(success){
@@ -188,7 +188,7 @@ int test_mobius_find_max_terms(){
     cipher_info->init_clocks = 5;
     dimension_limit = 3;
     max_term_limit = 3;
-    actual_max_terms = mobius_find_max_terms(max_term_limit, dimension_limit, cipher_info);
+    actual_max_terms = mobius_find_max_terms(max_term_limit, dimension_limit, cipher_info, 1);
     success = check_max_terms(cipher_info->init_clocks, correct_max_terms, actual_max_terms, expected_max_term_amount, expected_max_term_amount, cipher_info->iv_size);
     if(success){
         return 1;

@@ -58,7 +58,7 @@ uint64_t *iv_from_mask(const uint64_t mask, const int const *dimensions, const i
     int masked_axis_count = 0;
     for (int axis_index = 0; axis_index < dimension_count; axis_index++) {
         //extract mask value per axis
-        if ((mask >> axis_index) & 1) {
+        if ((get_bit(&mask, axis_index) == 1)) {
             debug_print("mask_index %d is 1 adding axis %d\n", axis_index, dimensions[axis_index]);
             mask_result[masked_axis_count] = dimensions[axis_index];
             masked_axis_count++;

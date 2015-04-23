@@ -18,13 +18,13 @@
 \maketitle
 \tableofcontents
 \section{Abstract}
-A cipher making use of cryptographically secure pseudo-random number generator in order to encrypt/decrypt data is classified as a stream cipher. In this paper, we talk about (and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack called the "Cube Attack" to it.
+A cipher making use of cryptographically secure pseudo-random number generator in order to encrypt/decrypt data is classified as a stream cipher. In this paper, we discuss(and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack known as the "Cube Attack" to it.
 
-It was observed that existing papers assume a high level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to a bachelor level alongside basic algebra should be enough.
+It was observed that existing papers assume a high level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to around a bachelor level alongside a basic understanding algebra should be sufficient.
 \chapter{Introduction}
-In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". It is an algebraic attack which relies on the attacker being able to set some variables in a ciphers initial state and observe its first few bits of output. What makes the attack particularly interesting is its generality, the internal workings of the cipher need not be known and it can be treated as a black box where only the input and output need to be observed.
+In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the "Cube Attack". It relies on the attacker being able to set some variables a cipher depends on and observe the first few bits of output it produces. What makes the attack particularly interesting is its generality, the internal workings of the cipher need not be known and it can be treated as a black box where only the input and output need to be observed.
 
-It has been applied quite successfully to weakened versions of the Trivium cipher, which was submitted to the Hardware category of the eSTREAM project alongside Grainv1\cite{eStreamPort}. Additionally a variation of the cube attack, known as the "Dynamic Cube Attack" has been applied successfully to both Grainv1 and Grain-128.
+It has been applied quite successfully to weakened versions of the Trivium cipher\cite{DinurShamir2009}\cite{MobiusTransform}, which was submitted to the Hardware category of the eSTREAM project alongside Grainv1\cite{eStreamPort}. Additionally a variation of the cube attack, known as the "Dynamic Cube Attack" has been applied with some success to Grainv1\cite{cryptoeprint:2010:570} and used to break Grain-128\cite{DynamicCube128} for a subset of keys.
 
 In order to aid explanation of the attack, we focus on its applicability to two ciphers. The first, termed "DummyCipher" for this paper, is a toy example designed to make it easier to follow the attack manually. This serves to introduce some fundamentals of stream ciphers as well as the attack.
 
@@ -340,26 +340,6 @@ This is the function that does the real work. As input it takes a key and the se
 This is done by starting at 0 and going up to $2^N$ where N is the number of IV bits being used. The IV for the current cipher run is set by masking the chosen IV bits with the number. The cipher is then run and its first output bit run added to those found so far.
 
 The final sum of cipher bits is equal to $pI$ and there for the super poly $pS(I)$.
-\section{Against Dummy Cipher}
-Running the attack on Dummy Cipher allows its correctness to be verified as the full polynomial for the key stream with low clock numbers is easily traceable by hand. See the appendix for a complete list of Dummy Cipher polynomials.
-
-Here we look at the dummy cipher with 0 initialisation clocks. This means that the first output bit has the form $IV_0K_0+K_1K_2+K_3$.
-
-The limited number of IV bits means we are able to check all possible super polys, and so all Max Terms that can be found should be.
-\subsection{Results}
-The implementation successfully found a max term for $IV={0}$. This can be seen from the polynomial listed above, $IV_0K_0$. The program also correctly identifies that key bit 0 is the only term.
-
-This is enough to reveal key bit 0 to an attack in an on-line attack. The ciphers output would need to be observed with a known plain text for 2 IV's, all bits 0 and all bits except bit 0 zeroed. These could then be summed and the result would equals $pS(I)$ and there for $k_0$.
-
-The contrived simplicity of this cipher actually limits the strength of the attack, there are simply too few bits in the results polynomial to extract information from. If the number of initialisation clocks is increased to 5, more can gleaned. The full algebraic representation of dummy cipher's polynomial after 6 clocks (5 for initialisation +1 for output) is listed in the appendix.
-
-In this case, the cube attack still manages to extract 3 max terms, revealing key bits 0 and 3. The increased number of clocks meant that the upto 3 IV bits were required to find all max terms.
-
-Additionally , this is a good case of where the expansion to include quadratic polynomials would of been worth it. Rather then 2 key bits, quadratic superpolys would allow an additionally bit, bit 3 to be found.
-\section{Against Grain-128a}
-As a fully fledged cipher little success was expected against Grain with the full 256 initialisation clocks. We there for experiment with the success of the attack on reduced initialisation clocks and with altering the internals of the cipher.
-\subsection{Method}
-\subsection{Results}
 \section{Improvements}
 The largest improvement made came from the observation that when computing the polynomial of a set of IV bits, the superpolys of all sub-set must also be computed. This large overlap makes it the perfect situation to use the dynamic programming method: compute the super polynomials for small IV bit sets and re-use these results to find results for super-sets. The original Cube Attack paper references the Möbius transform as a method of doing this, and a second paper %ref
 actually makes use of it against the Trivium cipher. %change to walsh?
@@ -377,8 +357,32 @@ These options, to duplicate all the subsets individualy or compute a larger IV s
 Another technique for saving memory which we mad use of was storing each results not as an element in an array but as a bit instead. The result array is composed of 64 bit numbers, where each bit is a result. To extract the result for a specific IV set, exactly the same method as extracting bit from a key or IV 64 bit int is used.
 
 %solution goes here
-\subsection{Results}
+\section{Results}
+\subsection{Against Dummy Cipher}
+Running the attack on Dummy Cipher allows its correctness to be verified as the full polynomial for the key stream with low clock numbers is easily traceable by hand. See the appendix for a complete list of Dummy Cipher polynomials.
 
+Here we look at the dummy cipher with 0 initialisation clocks. This means that the first output bit has the form $IV_0K_0+K_1K_2+K_3$.
+
+The limited number of IV bits means we are able to check all possible super polys, and so all Max Terms that can be found should be.
+\subsubsection{Results}
+The implementation successfully found a max term for $IV={0}$. This can be seen from the polynomial listed above, $IV_0K_0$. The program also correctly identifies that key bit 0 is the only term.
+
+This is enough to reveal key bit 0 to an attack in an on-line attack. The ciphers output would need to be observed with a known plain text for 2 IV's, all bits 0 and all bits except bit 0 zeroed. These could then be summed and the result would equals $pS(I)$ and there for $k_0$.
+
+The contrived simplicity of this cipher actually limits the strength of the attack, there are simply too few bits in the results polynomial to extract information from. If the number of initialisation clocks is increased to 5, more can gleaned. The full algebraic representation of dummy cipher's polynomial after 6 clocks (5 for initialisation +1 for output) is listed in the appendix.
+
+In this case, the cube attack still manages to extract 3 max terms, revealing key bits 0 and 3. The increased number of clocks meant that the upto 3 IV bits were required to find all max terms.
+
+Additionally , this is a good case of where the expansion to include quadratic polynomials would of been worth it. Rather then 2 key bits, quadratic superpolys would allow an additionally bit, bit 3 to be found.
+\subsection{Against Grain-128a}
+As a fully fledged cipher little success was expected against Grain with the full 256 initialisation clocks. We there for experiment with the success of the attack on reduced initialisation clocks and with altering the internals of the cipher.
+\subsubsection{Method}
+\subsubsection{Results}
+efficent vs inefficent cube attack speed on dummy cipher
+(and grain?)
+various weakened grain ciphers against each other (showing less amx terms for stronger)
+number of terms found vs inits (only if negative correlation)
+increasing time with increasing dimensions/checking more combinations of dimensions
 \chapter{Conclusion}
 \bibliographystyle{plain}
 \bibliography{bib}

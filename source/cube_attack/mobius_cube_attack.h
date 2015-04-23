@@ -8,7 +8,7 @@ Max_term * mobius_construct_max_terms(uint64_t *zeroed_super_polys, int *dimensi
 
 uint64_t *mobius_is_super_poly_linear(uint64_t* zeroed_key_super_poly, int *cube_axes, int cube_dimension, const Cipher_info * const cipher_info);
 
-Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const Cipher_info * const cipher_info);
+Max_term *mobius_find_max_terms(int max_term_limit, int dimension_limit, const Cipher_info * const cipher_info, int skip_param);
 
 Max_term * mobius_find_max_terms_guessing(int max_term_limit, size_t dimension_limit, int max_number_of_tries, const Cipher_info * const cipher_info);
 
