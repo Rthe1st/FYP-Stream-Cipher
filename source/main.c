@@ -8,8 +8,6 @@
 
 //expects arguments to be grain key iv streamLength
 //writes plain keystream to file
-//todo: make stream length param optionally a plaintext string, or take input interactivly
-//todo: make writting to file or prompt a choice
 void runGrain(int argc, char *argv[]) {
     if (argc < 4) {
         printf("grain reqiures 2 additional parameters:\nkey\niv\n In that order");
@@ -81,14 +79,10 @@ void runGrain(int argc, char *argv[]) {
     if(encrypt == 1 && binary == 1) {
         printf("encrypting bin");
         encryptBinary(state, inFp, outFp);
-    }/*else if(encrypt == 1 && binary == 0){
-        encryptHex(streamLength, state, plainText, fp);
-    } */else if(encrypt == 0 && binary == 1){
+    }else if(encrypt == 0 && binary == 1){
         printf("decrypting bin");
         decryptBinary(state, inFp, outFp);
-    } /*else if(encrypt == 0 && binary == 0){
-        decryptHex(streamLength, state, plainText, fp);
-    }*/
+    }
     fclose(inFp);
     fclose(outFp);
 }

@@ -27,30 +27,3 @@ void decryptBinary(Grain_state state, FILE* inFp, FILE* outFp){
         }
     }
 }
-/* UNTESTED
-void encryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp){
-    for (int i = 0; plainText[i] != EOF; i++) {
-        int bin1 = 0;
-        int bin2 = 0;
-        for (int bit = 0; bit < 4; bit++) {
-            bin1 = bin1 & (production_clock(&state) ^ (plainText[i] & power(2, i)));
-        }
-        for (int bit = 0; bit < 4; bit++) {
-            bin2 = bin2 & (production_clock(&state) ^ ((plainText[i] & power(2, i+4))>>4));
-        }
-        fputc(binToHex(bin1), fp);
-        fputc(binToHex(bin2), fp);
-    }
-}
-void decryptHex(int streamLength, Grain_state state, char* plainText, FILE* fp){
-    for (int i = 0; plainText[i] != EOF; i+=2) {
-        char decodedCharacter = 'a';
-        for(int hex=0; hex<2;hex++){
-            int bin = hexToBin(hex);
-            for(int bit=0;bit<4;bit++){
-                decodedCharacter = decodedCharacter&(production_clock(&state)&((bin&power(2,bit+(4)))<<(hex*4)));
-            }
-        }
-        fputc(decodedCharacter, fp);
-    }
-}*/

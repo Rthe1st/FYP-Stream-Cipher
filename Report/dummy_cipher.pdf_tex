@@ -63,5 +63,8 @@
     \put(0.50375923,0.13613161){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2}}}%
     \put(0.85750188,0.67566357){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{4}}}%
     \put(0.90835469,0.23487098){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{4}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{dummy_cipher.pdf}}%
+    \put(0.77637048,0.34635916){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Keystream}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{dummy_cipher.pdf}}%
   \end{picture}%
 \endgroup%

@@ -2,6 +2,7 @@
 papers/
 spec_grain_128/
 bin/
+*.pdf_tex
 
 #latex ignores as nicked from https://gist.github.com/kogakure/149016
 *.aux

@@ -11,12 +11,7 @@ typedef struct Grain_state {
 } Grain_state;
 
 extern int GRAIN_FULL_INIT_CLOCKS;
-extern int NO_H;
-extern int NO_LFSR_F;
-extern int NO_NLFSR_F;
 extern int MAKE_NLFSR_LINEAR;
-extern int NO_INIT_LFSR_F;
-extern int NO_INIT_NLFSR_F;
 
 Cipher_info* grain_info();
 

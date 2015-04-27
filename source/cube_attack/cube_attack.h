@@ -9,8 +9,8 @@ extern const int MAX_TERM_LIMIT;
 extern const int DIMENSION_LIMIT;
 
 typedef struct Max_term{
-    uint64_t* iv;//make sure these are unsigned
-    int* terms;//the key terms that when summed equal the IV's superpoly bit (assuming only linear equations used)
+    uint64_t* iv;
+    int* terms;
     int plusOne;
     int numberOfTerms;
     UT_hash_handle hh;

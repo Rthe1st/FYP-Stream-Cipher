@@ -17,21 +17,19 @@
 //5) If all match, assume linear. Find super poly form by finding value for key 0 through 111111..11
 //6) Store the super polys form
 //7) repeat until lots of linear super polys found
+///--below is not implemented
 //8) Online, find super poly value for each IV with a linear super poly.
 //9) solve linear equations
 
 const int MAX_TERM_LIMIT = 10;
 const int DIMENSION_LIMIT = 2;
 
-//change this to reuse keys as suggested in mobius paper
-//instead of (key1 key2), (key3,key4) do (key1, key2), (key1, key3)
 int is_super_poly_linear(int *cube_axes, int cube_dimension, const Cipher_info * const cipher_info) {
     int is_linear = 1;
-    //get free bit, needed because summed_before cancels the 2 to free sums
+    //get the constants value, needed because summed_before cancels the 2 cosntants in sums
     //but summed after does not, and so free bit must be canceled manualy
     uint64_t zeroed_key[2] = {0, 0};
     int zeroed_key_poly = get_super_poly_bit(zeroed_key, cube_axes, cube_dimension, cipher_info);
-    //number of tests is arbitrary. Pick a better number based (or change test method) based on research papers
     for (int i = 0; i < 20; i++) {
         uint64_t *key1 = generate_key(cipher_info->key_size);
         uint64_t *key2 = generate_key(cipher_info->key_size);
@@ -48,7 +46,7 @@ int is_super_poly_linear(int *cube_axes, int cube_dimension, const Cipher_info *
     return is_linear;
 }
 
-//returns 1 if dimension count increase, 0 otherwise
+//returns 1 if dimension count increases, 0 otherwise
 int increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info * const cipher_info) {
     //dimensions elements should be in ascending order
     for (int i = (*dimension_count) - 1; i >= 0; i--) {
@@ -64,7 +62,6 @@ int increase_dimensions(int *dimensions, int *dimension_count, const Cipher_info
     }
     //if no elements can be increased, more dimensions are needed
     (*dimension_count)++;
-    //printf("increasing to %d dimensions\n", *dimension_count);
     for (int i = 0; i < *dimension_count; i++) {
         dimensions[i] = i;
     }
@@ -150,7 +147,6 @@ Max_term *construct_max_term(int *cube_axes, int cube_dimensions, const Cipher_i
     //iv gives a linear super poly, so now find what its terms are
     uint64_t term_key[2] = {0, 0};
     int *terms = malloc(sizeof(int) * cipher_info->key_size);//this could be much smaller, depends on iv
-    //find if there's a +1 in the super poly or not
     int plusOne = get_super_poly_bit(term_key, cube_axes, cube_dimensions, cipher_info);
     int numberOfTerms = 0;
     for (int i = 0; i < cipher_info->key_size; i++) {

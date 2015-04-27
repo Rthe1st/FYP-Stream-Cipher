@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include "useful.h"
 
-/*lifted from 'the c programming language'*/
+/*copied from 'the c programming language'*/
 uint64_t power(int base, int n) {
     uint64_t power = 1;
     for (int i = 1; i <= n; ++i)
@@ -45,7 +45,7 @@ void binArrayToHex(char *hex, uint8_t *bin, size_t size) {
     }
 }
 
-/*lifted from stackoverflow
+/*from stackoverflow
 http://stackoverflow.com/questions/111928/is-there-a-printf-converter-to-print-in-binary-format*/
 void printBits(size_t const size, void const *const ptr) {
     unsigned char *b = (unsigned char *) ptr;

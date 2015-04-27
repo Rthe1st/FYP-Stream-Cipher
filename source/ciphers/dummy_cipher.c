@@ -41,8 +41,7 @@ Dummy_state setup_dummy(const uint64_t iv, const uint64_t key, const int clock_n
     return state;
 }
 
-//todo: generalise init and clock, use function pointer to setup and produciton clock instead
-//key and iv are uint64_t * to conform to cipher_helper function pointer, but arays should constist of a single element that fits in 7 bits
+//key and iv are uint64_t * to conform to cipher_helper function pointer, but array should consist of a single element that fits in 5 bits
 void dummy_init_and_clock(int *const output, const size_t outputSize, const uint64_t *const iv, const uint64_t *const key, int init_clocks){
     Dummy_state state = setup_dummy(iv[0], key[0], init_clocks);
     debug_print("initilisation done\n");

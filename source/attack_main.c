@@ -15,9 +15,12 @@ int main(int argc, char **argv) {
     srand((unsigned int) time(NULL));
     printf("finding max terms\n");
     Max_term *max_terms;
-    Cipher_info * cipher_info = grain_info();//dummy_info();//
-    //cipher_info->init_clocks=0;
-    cipher_info->init_clocks = 149;
+    Cipher_info * cipher_info;
+    if(argc >= 3 && strcmp(argv[2], "-dummy")){
+        cipher_info = dummy_info();
+    }else{
+        cipher_info = grain_info();
+    }
     clock_t time_taken = clock();
     if(argc >= 2 && strcmp(argv[1], "-mobius") == 0) {
         max_terms = mobius_find_max_terms(50, 2, cipher_info, 2);

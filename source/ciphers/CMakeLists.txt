@@ -1,1 +1,1 @@
-add_library(ciphers grain.c dummy_cipher.c efficient_grain.c cipher_helpers.c)
+add_library(ciphers grain.c dummy_cipher.c cipher_helpers.c)

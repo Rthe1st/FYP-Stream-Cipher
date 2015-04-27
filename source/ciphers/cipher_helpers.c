@@ -52,7 +52,7 @@ uint64_t *generate_iv(int *dimensions, int dimension_count, int iv_size) {
     return iv;
 }
 
-//mask is only uint64_t because computing superpoly for 64 or more dimensions in infeasible
+//mask is only a uint64_t because computing superpoly for 64 or more dimensions in infeasible
 uint64_t *iv_from_mask(const uint64_t mask, const int const *dimensions, const int dimension_count, int iv_size) {
     int mask_result[dimension_count];
     int masked_axis_count = 0;
