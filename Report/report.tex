@@ -19,81 +19,81 @@
 \maketitle
 \tableofcontents
 \section{Abstract}
-A cipher making use of a cryptographically secure pseudo-random number generator in order to encrypt/decrypt data is classified as a stream cipher. In this paper, we discuss (and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack known as the `Cube Attack' to it.
+A cipher making use of a cryptographically secure pseudo-random number generator in order to encrypt/decrypt data is classified as a stream cipher\cite{streamcipherDef}. In this paper, we discuss (and implement) one such stream cipher known as Grain-128a and explore the applicability of an attack known as the `Cube Attack' to it. To this end we also design and implement a toy cipher known as DummyCipher in order to explain the attack and confirm our implementation works.
 
-It was observed that existing papers assume a high level of background knowledge relating to stream ciphers and the mathematics surrounding them. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to around a bachelor level alongside a basic understanding of algebra should be sufficient.
+It was observed that existing papers assume a high level of background knowledge relating to stream ciphers and the mathematics surrounding them\cite{DinurShamir2009}\cite{DynamicCube128}\cite{MobiusTransform}. As such, the aim of this text is to serve as an introductory explanation with far fewer requirements for specialised background knowledge. General understanding of computer science to around a bachelor level alongside a basic understanding of algebra should be sufficient.
 \chapter{Introduction}
-In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the `Cube Attack'. It relies on the attacker being able to set some variables a cipher depends on and observe the first few bits of output it produces. What makes the attack particularly interesting is its generality, the internal workings of the cipher need not be known and it can be treated as a black box where only the input and output need to be observed.
+In 2008 a novel new attack was introduced by Dinur and Shamir\cite{DinurShamir2009} dubbed the `Cube Attack'. It relies on the attacker being able to set some variables a cipher depends on and observe the first few bits of output it produces. What makes the attack particularly interesting is its generality, the internal workings of the cipher may be unknown and it can be treated as a black box where only the input and output need be observed.
 
-It has been applied quite successfully to weakened versions of the Trivium cipher\cite{DinurShamir2009}\cite{MobiusTransform}, which was submitted to the Hardware category of the eSTREAM project alongside Grain-v1\cite{eStreamPort}. Additionally a variation of the cube attack, known as the `Dynamic Cube Attack' has been applied with some success to Grain-v1\cite{cryptoeprint:2010:570} and used to break Grain-128\cite{DynamicCube128} for a subset of keys.
+It has been applied quite successfully to weakened versions of the Trivium cipher\cite{DinurShamir2009}\cite{MobiusTransform}, which was submitted to the Hardware category of the eSTREAM project alongside Grain\cite{eStreamPort}. Additionally a variation of the cube attack, known as the `Dynamic Cube Attack' has been applied with some success to Grain-v1\cite{cryptoeprint:2010:570} and used to break Grain-128 for a subset of keys\cite{DynamicCube128}.
 
-In order to aid explanation of the attack, we focus on its applicability to two ciphers. The first, termed "DummyCipher" for this paper, is a toy example designed to make it easier to follow the attack manually. It also serves to introduce some fundamental attributes of stream ciphers.
+In order to aid explanation of the attack, we focus on its applicability to two cipher designs. The first, termed `DummyCipher' for this paper, is a toy example designed to make it easier to follow the attack manually. It also serves to introduce some fundamental attributes of stream ciphers (and possible pitfalls when designing them).
 
 Secondly, Grain-128a is introduced. The first version of the Grain cipher was invented in 2006 by Hell, Johansson and Meier \cite{Grain128aSpec} and submitted to the eSTREAM project. Having undergone several alterations to strengthen it, Grain-128a is the latest version, featuring a 128 bit key, 128 bit initialisation vector (IV) and support for authentication (though authentication is not examined in this paper).
 
-This paper uses the Grain-128a cipher to highlight mechanisms that can be used to improve resistance to the cube attack and various artificial weaknesses are imposed on the cipher to this end. These include reducing the complexity of its feedback function and reducing the number of initialisation rounds run before output is produced.
+This paper uses the Grain-128a cipher to highlight mechanisms that can be used to improve resistance to the cube attack and artificial weaknesses are imposed on the cipher to this end. These include reducing the complexity of its feedback function and reducing the number of initialisation rounds run before output is produced.
 
 Finally there is a discussion of techniques such as the M\"{o}bius Transform that can be used to improve the Cube Attack's efficiency. The explanation is enhanced by demonstrations on the implemented ciphers.
 
 \chapter{Background}
 \section{Stream Ciphers}
-A stream cipher is a cipher that encrypts a plain text continuously by combining it with random data. When truly random data is used the cipher is known as the One-time Pad (OTP). However, this has many practical drawbacks\cite{} and so instead a cryptographically secure pseudo-random number generator (CSPRNG) is used to created pseudo-random data for a secret key value. The security of a given stream cipher rests with its CSPRNG.
+A stream cipher is a cipher that encrypts a plaintext continuously by combining it with random data. When perfectly random data is used the cipher is known as the One-time Pad (OTP)\cite{otpDef}. However, it has serious practical drawbacks, such as requiring an extra key bit for every message bit sent\cite{otpDef}. So instead a cryptographically secure pseudo-random number generator (CSPRNG) is used to created pseudo-random data from a secret key value.
 
-A stream cipher operates on one atomic element at a time; for this paper we take this to be a single bit, but there is no reason it could not be larger. In fact, there exists modes of operation that can turn a block cipher into a stream cipher such as Counter (CTR) mode\cite{}. In this case, the block size of the cipher would be considered the atomic size.
+A stream cipher operates on one atomic element at a time; for this paper we take this to be a single bit, but there is no reason it could not be larger. In fact, there exists modes of operation that can turn a block cipher into a stream cipher such as Counter Cipher Feedback (CCFB) mode\cite{counterMode}. In this case, the block size of the cipher would be considered the atomic size.
 
-It is a useful feature of stream ciphers that each atomic can be encrypted or decrypted independently of what comes after it. As such, making the atomic 1 bit allows the plaintext or cipher text to be operated continuously without buffering  N bits of input or output. The larger the size of the atomic element, the more buffering is required, as the whole of an atomic element is needed in order to operate on it.
+It is a useful feature of stream ciphers that each atomic can be encrypted or decrypted independently of what comes after it. As such, making the atomic 1 bit in size allows the plaintext or ciphertext to be operated continuously without buffering input or output. The larger the size of the atomic element, the more buffering is required, as the whole of an atomic element is needed in order to operate on it.
 
-Stream ciphers used symmetric key cryptography, both the sender and receiver must know the value of some secret key $K$.
-
-Below is a summary of common features of stream ciphers or classifications for their type:
-
+Stream ciphers use symmetric key cryptography, both the sender and receiver must know the value of some secret key $K$.
+\newpage
+Below is a summary of common features of stream ciphers:
 \subsection{Keystream}
-This is the data produced by the cipher that is combined with the plaintext bit by bit. It is generally assumed that it must be as indistinguishable from truly random data as possible.
+This is the data produced by the cipher that is combined with the plaintext bit by bit, when this is done the result is a ciphertext and visa versa. This is normally done with an XOR operation as it is reversible, see \ref{eq:XORreverse}
+\begin{equation}
+P \oplus K=C, C \oplus K=P, P \oplus C = K
+\label{eq:XORreverse}
+\end{equation}
+Use of XOR makes it cheap to implement in hardware, a common use case for stream ciphers as evidence by the Hardware category in the eStream project\cite{eStreamPort}. Additionally an XOR operation is balanced, for random input there is a 50\% chance that it will output a 1 and 50\% chance it will output a 0. This helps maintain an even distribution in the ciphertext.
 
-When the keystream is combined with a plaintext the result is a cipher text and visa versa. This is normally done with an XOR operation as it is reversible:
-$P \oplus R=C, C \oplus R=P$
+Ideally, the key shared between the communicating parties $K$ would be used to encrypt/decrypted text directly. Assuming a random key this would be essentially the same as a One-time pad. However, as mentioned above the OTP has practical drawbacks, so instead the keystream is generated by the stream ciphers only using the key as a seed value instead. There is often still a limit on how many message bits can be exchanged before a new key is required, but it is much larger. In the case of Grain-128a a 128 bit key allows $2^128-1$ bits to be exchanged\cite{Grain128aSpec}.
 
-This makes it cheap to implement in hardware, a common use case for stream cipher. Additionally an XOR operation is balanced, for random input there is a 50\% chance that it will output a 1 and 50\% chance it will output a 0. This helps maintain an even distribution in the ciphertext.
+Should an attacker come to know the value of a keystream bit (and its position in the stream), they can trivially decrypt the respective ciphertext bit by XORing the two. Obviously this could be done by discovering the key being used and running the cipher themselves to observe its outputed keystream. However an even easier method is to observe the ciphertext produced for a plaintext the attacker is already aware of. This is called a `known plaintext' attack\cite{plaintextAttack} and is one of the reasons stream cipher should never use the same keystream more then once. It can either come about by an attacker feeding their own plaintext into the victims cipher (a 'chosen plaintext attack')or by knowing something about the structure of the victims plaintext.
 
-Ideally, the key shared between the communicating parties $K$ would be used to encrypt/decrypted text directly. Assuming a random key this would be essentially the same as a One-time pad. However, as mentioned above the OTP has practical drawbacks, for example 1 key bit would be required for every 1 bit of message sent (as reusing key bits would break the security guarantee of the OTP\cite{}). This is evidently not ideal, so instead the keystream is generated by the stream ciphers CSPRNG using the key as a seed value instead. There is often still a limit on how many message bits can be exchanged before a new key is required, but it is much larger. In the case of Grain-128a a 128 bit key allows $2^128$ bits to be exchanged.CHECK DIS %theres a chance its actual 2^128-1
+For example, if a user was encoding a letter known to often start with "Dear", then the attacker could XOR the start of the ciphertext with "Dear" and the result would be the respective keystream bits, as shown at the end of \ref{eq:XORreverse}. If the keystream where ever re-used the attacker could deduce the first 4 bits of plaintext encrypted with the cipher.
 
-Should an attacker come to know the value of a keystream bit (and its position in the stream), they can trivially decrypt the respective ciphertext bit by XOR'ing the two. Obviously this could be done by discovering the key being used and running the cipher themselves to observe its outputed keystream. However an even easier method is to observe the ciphertext produced for a plaintext the attacker is already aware of. This is called a known plaintext attack and means a stream cipher should never use the same keystream more then once. It can either come about by an attacker feeding their own plaintext into the victims cipher or by knowing the structure of the plaintext. For example, if a user was encoding letter known to often start with "Dear", then the attacker could XOR the start of the ciphertext with "Dear" and the result would be respective keystream bits. If the keystream where ever re-used the attacker could duduce the first 4 bits of plaintext encrypted with the cipher.
-
-Stream ciphers must be deterministic: A single key value should always produces the same keystream. Else two uses attempting to communicate with a shared key would produce incompatible keystream. This, together with keysteam re-use being forbidden mean that any cipher relying only of a key to seed its CSPRNG will force users to share a new key every N bits, where N is the maximum keystream size. This is not ideal because sharing keys requires a secure channel of communication and is thus expensive.
+Stream ciphers must be deterministic: A single key value should always produces the same keystream. Elsewise two users attempting to communicate with a shared key would run the risk of producing different keystreams. This, together with keysteam re-use being forbidden mean that any cipher relying only of a key to seed itself will force users to share a new key every N bits, where N is the maximum keystream size. This is not ideal because sharing keys requires a secure channel of communication and is thus expensive.
 
 \subsection*{IV values}
-To solve this issue, the keystream is normally produced as a function of two values, the key and a public initialisation vector (IV). An IV allows the cipher to be reused with the same key by switching its IV value as this will change the keystream.
+To solve this issue, the keystream is normally produced as a function of two values, the key and a public initialisation vector (IV). An IV allows the cipher to be reused with the same key by switching its IV value as this alter the produced keystream.
 
-The benefit of an IV comes from assuming it is public and known to the attacker. It is far easier to exchange a secret key securely once, and then exchange IV as needed in plaintext after that.
+The benefit of an IV comes from assuming it is public and known to the attacker. It is far easier to exchange a secret key securely once, and then exchange IVs as needed in plaintext after that.
 
-As a keystream should be indistinguishable from random, so knowing the input IV and the output keystream should not aid the attacker in deducing the key (though in practise it is exactly this relationship the Cube Attack exploits).
+This feature introduces a new attack vector by allowing for an attack to observe or manipulate the IV being used, so as to discover a relationship between the key, IV and keystream. As such ciphers with IVs must make it so knowing the input IV and the output keystream should not aid the attacker in deducing the key (though in practise it is exactly this relationship the Cube Attack exploits).
 
 \subsection{Synchronous or self-synchronising}
-These are two classifications of stream ciphers, the crux of this distinction is whether or not the plaintext being operated on affects the keystream generated by the cipher.
+These are two classifications of stream ciphers, the crux of this distinction is whether or not the cipertext previously produced affects the keystream generated by the cipher\cite{selfSyncCipher}.
 
-In both cases the sending and receiving ciphers are initialised in an identical state with the same key and IV. Then the sender produces 1 bit of cipher text, which is received and decrypted by the receiver.
+In both cases the sending and receiving ciphers are initialised in an identical state with the same key and IV. Then the sender produces 1 bit of ciphertext, which is received and decrypted by the receiver.
 
 The process of encrypting/decrypting a bit changes the state of the ciphers. In a synchronous cipher this state change is dependant on the previous state (and therefore the key and IV).
 
-The issue this cause is that if a bit is encrypted but then lost in transmission, the sending ciphers state will be 1 ahead of the receiving ciphers, meaning messages cannot be decrypted correctly. This is why its called synchronous, both the sender and receiver must be kept exactly `in sync'.
+The issue this cause is that if a bit is encrypted but then lost in transmission, the sending cipher's state will be 1 ahead of the receiving ciphers, meaning messages cannot be decrypted correctly. This is why its called synchronous, both the sender and receiver must be kept exactly `in sync'.
 
-Self-synchronising stream ciphers offer a way to solve this. The next state of a cipher is derived from number N of previous cipher text bits and the key and IV. This means that if the two ever become unsynchronised then they will re-synchronise when the receiver next receives N consecutive bits correctly, because these bits are the only state the cipher relies on.
+Self-synchronising stream ciphers offer a way to solve this. The next state of a cipher is derived from $n$ of previous ciphertext bits as well as the key and IV. This means that if the two ever become unsynchronised then they will re-synchronise when the receiver next receives $n$ consecutive ciphertext bits correctly, because these bits are the only state the cipher relies on.
 
-The two cipher detailed in this paper are synchronous, there output is dependant  on the culmination of all their previous states.
+The two ciphers detailed in this paper are synchronous, their output is dependant on the culmination of all their previous states.
 
 \subsection*{Shift Registers}
-Synchronous stream ciphers make use of changes to their state to generate pseudo-random output. A popular primitive for storing this state is a shift register. These useful for two primary reasons, their simplicity to implement in hardware (they are well studied and widely used for other purposes\cite{}
-) and their ability to easily change state incrementally.
+Synchronous stream ciphers make use of changes to their state to generate pseudo-random keystreams. A popular primitive for storing this state is a shift register. Their simplicity to implement in hardware (they are well studied and widely used for other purposes\cite{shiftregistersHardware}) and their ability to easily change state incrementally.
 
-A shift register is an array of bits which on can be `clocked', upon which all the bits shift one place to either the right or left, with the end bit being lost and a new bit being inserted at the start. The new bit is often decided by a function of its existing bits. If this function involves only XOR'ing bits then the register is considered a Linear Feedback Shift Register (LFSR), if it involves ANDing bits (or other more complicated functions) it is considered a Non-Linear Feedback Shift Register.
+A shift register is an array of bits which on can be `clocked', upon which all the bits shift one place to either the right or left, with the end bit being lost and a new bit being inserted at the start. The new bit is often decided by a function of its existing bits. If this function involves only XORing bits then the register is considered a Linear Feedback Shift Register (LFSR), if it also involves ANDing bits (or other more complicated functions) it is considered a Non-Linear Feedback Shift Register (NLFSR).
 
 Both ciphers in this paper are shift register based, using a feedback function to calculate the new value from a combination of the existing bits.
 
-A register can only go through a maximum of $2^n-1$ states where $n$ is its number of bits. As the state changes are normally deterministic, if a shift register is used as the sole primitive of a cipher then it is unsafe to use after $2^n-1$ bits of output because the output is guaranteed to repeat itself.
+A register can only go through a maximum cycle of $2^n-1$ states where $n$ is its number of bits (because an $n$ bit shift register can only contain $2^n$ states, inculding when all bits are 0). As the state changes are deterministic, if a shift register is used as the sole primitive of a cipher then it is unsafe to use after $2^n-1$ bits of keystream because the keystream is guaranteed to repeat itself.
 
-However, it has been proven that if you make the feedback function of a shift register with a linear feedback function a primitive polynomial, then the maximal number of states will occur before repetition.
+However, it has been proven that if you make the feedback function of a shift register a linear feedback function which can be represented as a a primitive polynomial, then the maximal number of states will occur before repetition\cite{linearMaximal}.
 
-This view of the feedback function as a polynomial can be seen from \ref{fig}. This ciphers feedback function can be represented as  $b_0g_0+b_1g_1+b_2g_2+b_3g_3$, where $b_n$ is a bit in the register and $g_n$ represents wether or not its used in the feedback. In this case $g_2 = 0, g_0, g_1, g_3 = 1$ resulting in $b_0+b_1+b_3$. This is equivalent to $x^4+x^3+x^1+1$ when represented as a polynomial, and this is what must be primitive for a maximal period.
+This view of the feedback function as a polynomial can be seen from \ref{fig}. This ciphers feedback function can be represented as  $b_0g_0+b_1g_1+b_2g_2+b_3g_3$, where $b_n$ is a bit in the register and $g_n$ represents whether or not its used in the feedback. In this case $g_2 = 0, g_0, g_1, g_3 = 1$ resulting in $b_0+b_1+b_3$. This is equivalent to $x^4+x^3+x^1+1$ when represented as a polynomial, and this is what must be primitive for a maximal period to be achieved. A primitive polynomial is one with facotrs other then itself and 1.
 
 \begin{figure}[!htb]
 \centering{
@@ -102,14 +102,10 @@ This view of the feedback function as a polynomial can be seen from \ref{fig}. T
 \label{fig:lfsr}
 }
 \end{figure}
-
-%A primitive polynomial is one that has no factors other then itself and 1.
-
-NLFSR's are less well understood then LFSR's but often deemed necessary for cryptography to avoid weaknesses in LFSRs. By definition LFSR's have a linear relationship between their keys and output. Its important to introduce some non-linear element as systems of linear equations are relatively easy to solve (by using Gaussian elimination for example\cite{gaussian}) where as solving systems of non-linear equations in NP-complete\cite{NonlinearComp}.
-This can obviously be done using an NLFSR, as is the case in the cipher in this paper, or using a combinations of LFSRs.
+NLFSR's are less well understood then LFSRs but often deemed necessary for cryptography to avoid weaknesses in LFSRs. By definition LFSRs have a linear relationship between their keys and output. It's important to introduce some non-linear element as systems of linear equations are relatively easy to solve (by using Gaussian elimination for example\cite{gaussian}) where as the complexity of solving systems of non-linear equations in NP-complete\cite{NonlinearComp}. This can obviously be done using an NLFSR, as is the case with the ciphers in this paper .
 
 \section{Binary Algebra}
-Often a stream ciphers key, IV, internal state and key stream are defined in bits, so we discuss them in terms of what is known as $\mathit{GF(2)}$, a finite field over 0 and 1. That is, only the values of 0 and 1 are valid. With this in mind, the operations add and multiply can be taken to mean XOR and AND respectively because they have identical truth tables.
+Often a stream ciphers key, IV, internal state and key stream are defined in bits, so it is helpful to discuss them in terms of what is known as $\mathit{GF(2)}$, a finite field over 0 and 1. That is, only the values of 0 and 1 are valid. With this in mind, the operations add and multiply can be taken to mean XOR and AND respectively because they have identical truth tables.
 
 \subsection{GF(2) Properties}
 \begin{equation} \label{eq:GFtimes}
@@ -122,7 +118,7 @@ Interestingly, subtraction is identical to addition:
 \begin{equation} \label{eq:GFminus}
 1-1=0, 0-0=0, 1-0=1, 0-1=1 \to a-b = a+b = a \oplus b
 \end{equation}
-Of less use to use, the divide operation (excluding divide by 0 scenarios, its the same as multiply):
+Of less use to us, the divide operation (excluding divide by 0 scenario) is the same as multiply:
 \begin{equation} \label{eq:GFdivide}
 1/0=\mathit{INVALID}, 0/0=\mathit{INVALID}, 0/1=0, 1/1=1 \to a/b = ab = a \land b \iff b \neq 0
 \end{equation}
@@ -134,7 +130,9 @@ a^n = a
 \subsubsection{Natural numbers modulus 2}
 It should be noted that $\mathit{GF(2)}$ is equivalent to the set of natural numbers modulo 2 with regards to the addition and multiplication operations. This proves useful for implementation; it is uncommon for a programming language to offer a native type for $\mathit{GF(2)}$. Integers are much more common but can be converted to $\mathit{GF(2)}$ by summing and multiplying them as normal and performing modulus 2 on the end result.
 
-%prove this or reference it
+The equivalence is trivial to prove. Examining the boolean equations above reveals that summing an even number of 1 gives 0 for $GF(2)$. Adding another, to sum an odd number of ones gives 1.
+
+All even numbers mod 2 give 0, all odd numbers mod 2 give 1. As any integer $n$ can be represented as the sum of $n$ 1s. If the integer is odd, this will be an odd number of ones, giving 1 over $GF(2)$, if even it will give 0. As such btoh methods give the same result.
 
 \section{Mathematical Representation}
 If a pseudo-random number generators only input is an initial seed value (key and IV in the case of synchronised stream ciphers), in order for the successive outputs to change deterministically they must be maintain some form of state based only on the seed and the number of previous outputs.
@@ -206,7 +204,7 @@ A number of these clocks would normally be performed and any output discard init
 
 The properties desired in the cipher were those that would show a variety of cube attack cases, but in few enough cycles to make manual calculation feasible. This was done but with the compromise the cipher contained serious flaws.
 
-Firstly, the key and IV values are so small as to make a brute force attack trivial. Lets say a user encrypted a plain text $P$ using key $K$ and IV $I$. On observing the ciphertext, an attacker could set the stream cipher to every combination of key and IV and perform decryption on the cipher text for each. As soon as coherent plaintext was observed the key and IV used would be known to be the correct one. As there are only 5 key bits and 5 IV bits, there would be $2^(5+5) = 2^10$ combinations to try, a trivial task for modern hardware.
+Firstly, the key and IV values are so small as to make a brute force attack trivial. Lets say a user encrypted a plaintext $P$ using key $K$ and IV $I$. On observing the ciphertext, an attacker could set the stream cipher to every combination of key and IV and perform decryption on the ciphertext for each. As soon as coherent plaintext was observed the key and IV used would be known to be the correct one. As there are only 5 key bits and 5 IV bits, there would be $2^(5+5) = 2^10$ combinations to try, a trivial task for modern hardware.
 %add ref for trival claim?
 
 Secondly, the feedback function is relied upon to scramble the key and IV values so they cannot be linked with the cipher output. This is what makes cipher design difficult, and this cipher does a poor job of it.
@@ -255,9 +253,6 @@ The linear register obviously cannot be used on its own because of the attacks m
 Combining the non linear feedback with the linear output, the best of both can be had. The LFSR provides a guaranteed non-repeating sequence, helping to hide any repetition from the non linear register. And the NLFSR provides protection against linearity attacks.
 
 It is important to note the use of XOR gates with combining the various parts of Grain. The balanced nature of XOR mention earlier makes it a good choice, an AND operation like that used in dummy cipher can cause a lose of information, which could increase the chances of a combination of cypher primitives being weaker then the sum of its parts.
-
-%mention h?
-
 \chapter{Cube Attack}
 \section{Overview}
 The Cube Attack is an algebraic attack making use of the equations representing a ciphers output bits to derive the value of its key bit. The difficulty is that in a modern cipher the equation will be too long to be described/analyse in its entirety, so instead certain qualities of the equation are discovered by observing changes in output based on changing input. To do this, the Cube attack relies on observing the IV value being used and preferably having some ability to manipulate it.
@@ -343,52 +338,51 @@ For example: $p_S(I)=k_{30}+k_{50}$. Key bit 50 is set to 1 and all others set t
 
 Performing this test $N$ times for each bit in a key length $N$ will give all the linear terms in the superpoly. However, should a higher order term like a quadratic be present, it will remain hidden. This is because only a single bit is set at any given time so a term comprising of 2 or more bits such as $k_n*k_m$ will result in either $k_n$ or $k_m$ always zeroing the term.
 
-This can be solved by the previously mentioned generalising to high dimensions: repeating the above process but searching all combinations of 2 key bits instead of 1. The drawback is the exponential increasing in time that this takes. For example, Grain-128a has a 128 bit key, requiring 128 superpolys to be calculated to find all linear terms. To find all quadratic terms 8128 superpolys must be searched\footnote{Using combinatorics, from 128 choose 2 is $128!/2!*126!$}. Later we discuss how this can be reduced by re-using previously calculated superpolys but it remains unreasonable to search for higher order terms.
+This can be solved by the previously mentioned generalising to high dimensions: repeating the above process but searching all combinations of 2 key bits instead of 1. The drawback is the exponential increasing in time that this takes. For example, Grain-128a has a 128 bit key, requiring 128 superpolys to be calculated to find all linear terms. To find all quadratic terms 8128 superpolys must be searched\footnote{Using combinatorics, from 128 choose 2 is $128!/(2!126!)$}. Later we discuss how this can be reduced by re-using previously calculated superpolys but it remains unreasonable to search for higher order terms.
 \subsubsection{Proving linearity}
-Exhaustively searching for terms of all high orders in a super poly is infeasible. However, this attack's aim of providing a system of linear equations to be solved relies on the equations forms being completely defined. As such we must test that the highest order term in a superpoly is equal to or less then the highest order term we have searched for (linear, quadratic etc).
+Exhaustively searching for terms of all high orders in a superpoly is infeasible. However, this attack's aim of providing a system of linear equations to be solved relies on the equations forms being completely defined. As such we must test that the highest order term in a superpoly is equal to or less then the highest order term we have searched for (linear, quadratic etc).
 
 For Max terms (linear superpolys) this is easy. A basic property of a linear function is that $f(x+y)=f(x)+f(y)$ \cite{linearproperties}.
-As such, we can attempt to prove a given polynomial for $C_I$ is not linear by choosing 2 key at random. Let the function f be the our cipher. If $f(key_1)\oplus f(key_2) \neq f(key_1 \oplus key_2)$ then it is not linear.
+As such, we can attempt to prove that a given polynomial for $C_I$ is not linear by choosing 2 keys at random. Let us use $p_S(I,K)$ to represent the superpoly for a given key value $K$. If $p_S(I,0) \oplus p_S(I, k_1)\oplus p_S(I, k_2) \neq p_S(I, k_1 \oplus k_2)$ then it is not linear. $p_S(I, 0)$ has to be included to cancel any constants that may be present.
 
-Unfortunately this method can only disprove a super polys linearity, not prove it. Thus we must choose a statistically significant number of test such that the chances of a non-linear function passing them all is small.%add statics knoweldge
+Unfortunately this method can only disprove a superpolys linearity, not prove it. Thus we must choose a statistically significant number of test such that the chances of a non-linear function passing them all is small.%refs
 
 \section{Basic Implementation}
 \subsection{Method}
-To implement a basic form of the cube attack, all that needs to be done is combine the methods for computing the linear parts of a super poly and testing their linearity.
+To implement a basic form of the cube attack, all that needs to be done is combine the methods for computing the linear parts of a superpoly and the testing of their linearity. Any $p_S(I)$ passing a linearity test and containing linear terms can be added to the system of linear equations we hope to solve.
 
 The implementation has 4 main functions listed below.
 
-\subsubsection{find max terms}
-The main purpose of this function is to keep track of which IV combinations have been tried. It is sometimes possible to intelligently target specific IV bit combinations based on heuristics of a cipher to increase the likely hood of finding a max term, but this implementation simply brute forces all IV combinations; it tries each IV bit on its own, then all combinations of 2 bits, then 3 and so on.
+\subsubsection{Find max terms}
+The main purpose of this function is to keep track of which IV combinations have been tried. It is sometimes possible to intelligently target specific IV bit combinations based on heuristics of a cipher to increase the likelihood of finding a max term, but this implementation simply brute forces all IV combinations; it tries each IV bit on its own, then all combinations of 2 bits, then 3 and so on.
 
-For each IV it first tests the linearity of their super poly. If and only if that test is past does it attempt to find any linear terms in the super poly. If a super poly passes the linearity test, but no linear terms are found, it discards that Max term candidate. If this occurs, it means that the super poly was a constant and contained no key bits to help the ultimate system of linear equations. This often occurs if the number of IV bits tried is too large, so trying to factor the polynomial into the form $tIpS(I)+q(x_1..x_n)=tI(0)+q(x_1..x_n)$.
+For each IV it first tests the linearity of their superpoly. If and only if that test is past does it attempt to find any linear terms in the superpoly. If a superpoly passes the linearity test, but no linear terms are found, it discards that Max term candidate. If this occurs, it means that the superpoly was a constant and contained no key bits to help the ultimate system of linear equations. This often occurs if the number of IV bits tried is too large, and the polynomial is factored into the form $t_Ip_S(I)+q(x_1..x_n)=t_I(0)+q(x_1..x_n), p_S(I)=0$.
 
-\subsubsection{is super poly linear}
-This simply performs the simple linearity test explained earlier. First $pI$ is computed for a completely zeroed key, providing the constant for the super polys. This is done once and reused for each test as it is not key dependant.
+\subsubsection{Is superpoly linear}
+This performs the simple linearity test explained earlier. First $p_I$ is computed for a completely zeroed key, providing the constant for the superpolys. This is done once and reused for each test as it is not key dependant.
 
-Then 2 keys are randomly generated, summed together and the sum of the individual key's $pI$'s compared to the pre-summed key's $pI$. Care is taken to combine the pre-summed super poly with the zeroed keys super poly.
-
-The reason for this is that all the superpolys share the same key-independent constant. As such, when the individual super polys are summed their constants cancel. If that constant has a value of 1, then the pre-summed super poly must have its constants cancelled as well.
-
+Then 2 keys are randomly generated, summed together and the sum of the individual key's $p_S(I)$'s compared to the pre-summed key's $p_S(I)$. Care is taken to combine the pre-summed superpoly with the zeroed keys superpoly before comparison.
 \subsubsection{Construct Max Terms}
-Again, this function does much the same as the description of finding max terms above. For each bit in the key it computes the super poly and if its 1 (after accounting for constants), register that bits linear term as present.
-\subsubsection{get super poly bit}
-This is the function that does the real work. As input it takes a key and the set of IV bits you want to find the super polynomial for, and return the super poly value.
+Again, this function does much the same as the description of finding max terms above. For each bit in the key it computes the superpoly and if it's value is 1 (after accounting for constants), it registers that bits linear term as present.
+\subsubsection{gGet superpoly bit}
+This is the function that does the real work. As input it takes a key and the set of IV bits you want to find the super polynomial for, and returns the superpoly value.
 
-This is done by starting at 0 and going up to $2^N$ where N is the number of IV bits being used. The IV for the current cipher run is set by masking the chosen IV bits with the number. The cipher is then run and its first output bit run added to those found so far.
+This is done by setting a counter $C$ to 0 and going up to $2^N$ where $N$ is the number of IV bits being used. The IV for the current cipher run is set by bit masking the chosen IV bits with the $C$. The cipher is then run and it's first keystream bit added to those found so far.
 
-The final sum of cipher bits is equal to $pI$ and there for the super poly $pS(I)$.
+The final sum of cipher bits is equal to $p_I$ and therefor the superpoly $p_S(I)$.
 \section{Improvements}
-The largest improvement made came from the observation that when computing the polynomial of a set of IV bits, the superpolys of all sub-set must also be computed. This large overlap makes it the perfect situation to use the dynamic programming method: compute the super polynomials for small IV bit sets and re-use these results to find results for super-sets. The original Cube Attack paper references the Möbius transform as a method of doing this, and a second paper %ref
-actually makes use of it against the Trivium cipher. %change to walsh?
-\subsection{Möbius Transform}
-An algorithm for using the Möbius transform to computer super polys can be found in PAPER.
+The original Cube Attack paper includes several suggestions for its extension and generalisation. One such suggestion was to remember partial cube solutions for re-use in other over lapping cubes. This was undertaken in \cite{MobiusTransform} alongside several other improvements.
+
+\subsection{M\"{o}bius Transform}
+This improvement came from the observation that when computing the polynomial of a set of IV bits, the superpolys of all sub-sets must also be computed. This large overlap makes it the perfect situation to use the dynamic programming method: compute the super polynomials for small IV bit sets and re-use these results to find results for super-sets. The M\"{o}bius transform can be used to do this, and has been demonstrated against Trivium\cite{MobiusTransform}.
+
+An algorithm for using the M\"{o}bius transform to computer superpolys can be found in PAPER.
 %explain the algorthim?
-The use of a Möbius transform means that all sub sets of an IV bit set can be computed for the same cost as computing that single larger sets super poly alone, but that for a set of N bits, $2^N$ bits need to be stored at a time. The In our implementation the results where stored in an array and an elements index implicitly held the set of IV bits the super poly was for.%expand on this?
+The use of a M\"{o}bius transform means that all sub sets of an IV bit set can be computed for the same cost as computing that single larger sets superpoly alone, but that for a set of N bits, $2^N$ bits need to be stored at a time. The In our implementation the results where stored in an array and an elements index implicitly held the set of IV bits the superpoly was for.%expand on this?
 
 It is also important to note that the implementation actually required the storing of $3*2^N$ elements. This is because the zeroed-key results, Max Term results and the linearity test results were both computed and then looped through, forgetting any IV set that didn't pass the linearity test or contained no key terms.
 
-Because the Möbius transform allows $2^N$ super polynomials for the price of 1, it is most efficient to only use it to calculate IV bit sets with the largest feasible cardinality. However, if the results for the set $C_I={0,3,20}$ were calculated for instance, it is clearly inefficient to re-calculate all the results whilst searching $C_I={0,3,30}$. The perfect solution would be to compute $C_I={0,3,20,30}$ but this may not be possible because of either the memory or time required to calculate $2^N$ results.
+Because the M\"{o}bius transform allows $2^N$ super polynomials for the price of 1, it is most efficient to only use it to calculate IV bit sets with the largest feasible cardinality. However, if the results for the set $C_I={0,3,20}$ were calculated for instance, it is clearly inefficient to re-calculate all the results whilst searching $C_I={0,3,30}$. The perfect solution would be to compute $C_I={0,3,20,30}$ but this may not be possible because of either the memory or time required to calculate $2^N$ results.
 
 These options, to duplicate all the subsets individually or compute a larger IV set, are 2 ends of a sliding scale trading time for memory. Say an attacker wants to search all combinations of 4 bits. Having computed the results for ${0,1,2,3}$ which gives $2^4=16$ results, bit 4 could be switched for bit 5. 8 of the calculated results can stay unchanged because they did not involve bit 4. This allows a single bit to be changed and only $2^{n-1}$ results need to be recalculated.
 
@@ -396,100 +390,197 @@ Another technique for saving memory which we mad use of was storing each results
 
 %solution goes here
 \section{Results}
+\subsection{Speed of Improved Cube Attack}
+To discover how much difference techniques like the M\"{o}bius transform has on the attack, the plain and improved versions were ran and their execution times compared.
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    IV Dimensions & Plain (CPU Cycles) & Improved (CPU Cycles)\\ \hline
+    1 & 0 & 4\\ \hline
+    2 & 9 & 8\\ \hline
+    3 & 94 & 13\\ \hline
+    4 & 36 & 16\\ \hline
+    5 & 39 & 14\\ \hline
+    \end{tabular}
+\end{center}
+The table above shows the results for DummyCipher. These meaurements were doen in C using the \begin{verbatim}
+clock()
+\end{verbatim} function to measure CPU cycles and average over several runs, thus they are only approximate. However it clearly indicates that the plain Cube Attacks execution increasing far more rapidly with respect to the size of $C_I$. Even if it does cost slightly more for the very lowest dimensions.
+
+This is even more clear when  data from attacking Grain-128a is examined.
+
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    IV Dimensions & Plain (CPU Cycles) & Improved (CPU Cycles)\\ \hline
+    1 & 1513 & 2366\\ \hline
+    2 & 96092 & 4569\\ \hline
+    \end{tabular}
+\end{center}
+The improved attack actually faired slightly worse are 1 dimension. This makes sense as the m\"{0}bius transform's main gain comes from computing all subsets of a set of dimensions at only the cost of the superset. For 1 dimension, there are no subsets to be found, so this benefit is wasted.
+
+However the drastic difference in times for 2 dimensions removes any doubt that the M\"{o}bius transform is effective. In fact this chart only gos up to 2 dimension because the plain Cube Attack took such a long time on 3 dimensions that it was deemed unnecessary to complete.
 \subsection{Against Dummy Cipher}
 Running the attack on Dummy Cipher allows its correctness to be verified as the full polynomial for the key stream with low clock numbers is easily traceable by hand. See the appendix for a complete list of Dummy Cipher polynomials.
 
 Here we look at the dummy cipher with 0 initialisation clocks. This means that the first output bit has the form $IV_0K_0+K_1K_2+K_3$.
 
-The limited number of IV bits means we are able to check all possible super polys, and so all Max Terms that can be found should be.
-\subsubsection{Results}
-The implementation successfully found a max term for $IV={0}$. This can be seen from the polynomial listed above, $IV_0K_0$. The program also correctly identifies that key bit 0 is the only term.
+The limited number of IV bits means we are able to check all possible superpolys, and so the program was able to correctly identify the single superpoly: $IV_0K_0$.
 
-This is enough to reveal key bit 0 to an attack in an on-line attack. The ciphers output would need to be observed with a known plain text for 2 IV's, all bits 0 and all bits except bit 0 zeroed. These could then be summed and the result would equals $pS(I)$ and there for $k_0$.
+This was tested on DummyCipher further by increasing the initialisation up to 5 rounds. For each (1,2,3,4 and 5 rounds) the expected max terms were discovered.
 
-The contrived simplicity of this cipher actually limits the strength of the attack, there are simply too few bits in the results polynomial to extract information from. If the number of initialisation clocks is increased to 5, more can gleaned. The full algebraic representation of dummy cipher's polynomial after 6 clocks (5 for initialisation +1 for output) is listed in the appendix.
+By design DummyCipher was supposed to allow a variety of equations to form, allowing the attack implementation more test cases. Thanks to this, after only 5 initialisation rounds the first keystream bit contained a variety of superpolys. The discovery of $IV_1IV_2K_3$ and $IV_0IV_1IV_2(K_0)$ indicated the program worked for superpolys containing multiple IV bits.
+
+The contrived simplicity of this cipher actually limits the strength of the attack, there are simply too few bits in the resulting polynomials to extract information from. If the number of initialisation clocks is increased to 5, more can gleaned. The full algebraic representation of dummy cipher's polynomial after 6 clocks (5 for initialisation +1 for output) is listed in the appendix.
 
 In this case, the cube attack still manages to extract 3 max terms, revealing key bits 0 and 3. The increased number of clocks meant that the upto 3 IV bits were required to find all max terms.
 
-Additionally , this is a good case of where the expansion to include quadratic polynomials would of been worth it. Rather then 2 key bits, quadratic superpolys would allow an additionally bit, bit 3 to be found.
+Additionally , this is a good case of where the expansion to include quadratic polynomials would of been worth it. Quadratic superpolys would of allowed key bit 3 to be found as well.
 \subsection{Against Grain-128a}
-As a fully fledged cipher little success was expected against Grain with the full 256 initialisation clocks. We there for experiment with the success of the attack on reduced initialisation clocks and with altering the internals of the cipher.
+As a fully fledged cipher little success was expected against Grain-128a with the full 256 initialisation clocks. We therefore experimented with the success of the attack on reduced initialisation clocks and with altering the internals of the cipher.
 \subsubsection{Method}
+In attacking Grain-128a the more efficient implementation using the M\"{o}bius Transform and recycled superpolys for linearity tests was used. This had to be done because even for an $C_I$ with cardinality 3, the primitive cube attack took a long time. The improved attack allowed a fairly though search of all subsets of 3 IV bits.
+
+The original Cube attack paper made use of a high speed computer for its processing and managed to operate of IV sets of 30 bits or more. By comparison, the largest sets we managed to search we 15 bits. Additionally, Grain is somewhat more complicated then Trivium and offers a lot more opportunities to increase the dimensions of terms.
+
+As such the full cipher was decided to be beyond our reach. Instead we focused on analysing a few weakened versions. Firstly, attacks were made on Grain-128a after different initialisation rounds to track how the attack fared as rounds increased.
+
+Then the operation of Grain-128a was changed to observe how this affected its output. As the cube attack hopes to find lower dimension polynomials it was thought that by disabling Grain's NLFSR its vulnerability to attack could be greatly increased.
+
 \subsubsection{Results}
-efficient vs inefficient cube attack speed on dummy cipher
-(and grain?)
-various weakened grain ciphers against each other (showing less max terms for stronger)
-number of terms found vs inits (only if negative correlation)
-increasing time with increasing dimensions/checking more combinations of dimensions
+\begin{figure}[g]
+\centering{
+\resizebox{150mm}{!}{\input{./grain_chart.pdf_tex}}
+\label{fig:grain_chart}
+}
+\end{figure}
 \chapter{Conclusion}
+In this paper we have introduced Stream Ciphers in general and one published stream cipher in particularly (Grain-128a). We have also invented a toy stream cipher (DummyCipher). This was all used to aid explanation of the Cube Attack in a more accessible manor then it was originally discussed. This has then been pushed further to introduce improvements to the attack such as the M\"{o}bius transform.
+
+Additionally we have verified that the accompanying attack implementation works using the know equations of DummyCipher and explored its use on the much more resistant Grain-128a cipher.
+
+This provides a practical introduction to stream ciphers and how abstract mathematics can be put to practical use in attacking them.
 \bibliographystyle{plain}
 \bibliography{bib}
 \begin{appendices}
 \chapter{DummyCipher}
-%more this to appendixs
+\ref{fig:dummycipher} shows the operation of DummyCipher. Below is a list of the polynomial representations of its first keystream bits when initialised for between 0 and 5 rounds. It also lists potential max terms.
 
-This register is composed of 5 bits, with bit 0 on the right and bit 4 on the left. On being clocked to produce a bit, the register decreases each bit's index by one (so bit 4 becomes bit 3) and places the XOR of bits 0 and 3 into 4. If we used this as a (very poor) stream cipher, the XOR of bits 0 and 3 would additionally be output and an XOR performed with a plain text bit to encrypt it.
+$I_n$ is IV bit $n$, $K_n$ is key bit $n$, $B_n$ means the keysteam bit produced after $n$ rounds.
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    Initialisation Rounds & First keystream bit polynomial & Max Terms\\ \hline
+    0 & $I_0K_0+K_1K_2+K_3$ & $I_0K_0$\\ \hline
+    1 & $I_1K_1+K_2K_3+K_4$ & $I_1K_1$\\ \hline
+    2 & $I_2K_2+K_3K_4+B_1$ & $I_2K_2$\cr
+      &						& $I_0K_0$\\ \hline
+    3 & $I_3K_3+K_4B_1+B_2$ & $I_1K_1$\cr
+	  &						& $I_3K_3$\\ \hline
+    4 & $I_4K_4+B_1B_2+B_3$ & $I_2K_2$\cr
+	  & 					& $I_4K_4$\\ \hline
+    5 & $I_1I_2B_1+B_2B_3+B_4$ & $I_3K_3$\cr
+	  & 					   & $I_1I_2K_3$\cr
+	  &						   & $I_0I_1I_2K_0$ \\ \hline
 
-The initial state (before any clocking) of the registers bits can be thought of as its key. Let the key be an array of 5 bits. As explained above, bit 0 XOR bit 3 is bit 0 + bit 3 over GF(2) and so:
-\begin{verbatim}
-outputBit[0] = key[0]+key[3]
-Or:
-registerBit[0] = key[0]+key[3]
-\end{verbatim}
-This initial register state would be:
-\begin{verbatim}
-state = [key[0],key[1],key[2],key[3],key[4]]
-\end{verbatim}
-After one clock:
-\begin{verbatim}
-outputBit[0] = key[0]+key[3]
-state = [outputBit[0],key[0],key[1],key[2],key[3]]
-      = [key[0]+key[3],key[0],key[1],key[2],key[3]]
-\end{verbatim}
-After two clocks:
-\begin{verbatim}
-outputBit[1] = outputBit[0]+key[3]
-state = [outputBit[1], outputBit[0],key[0],key[1],key[2]]
-      = [outputBit[0]+key[3], key[0]+key[3],key[0],key[1],key[2]]
-      = [(key[0]+key[3])+key[3], key[0]+key[3],key[0],key[1],key[2]]
-\end{verbatim}
-This also shows how each clock of the register increases the complexity of the equation for the next output bit. For the reason most stream ciphers require a large number of clocks to be made and output bits thrown away before any may be used for encryption.
-
-Additionally the feedback in this case is linear because it only involves additions. Non-linear feedback would be used in a real world stream cipher in order to better hide the properties of the keys. bit[0]+key[3]*bit[4] is non-linear for example.
-%talk about representing outbit n in terms of n-keylength
-\chapter{Results}
-\subsection{Cube Attack}
-\subsubsection{DummyCipher 0 initialisation clocks}
+    \end{tabular}
+\end{center}
+\chapter{Cube Attack}
+\subsection{DummyCipher 0-5 initialisation clocks}
 Up to 5 IV bits (exhaustive)
 \begin{center}
-    \begin{tabular}{| l | l |}
+    \begin{tabular}{| l | l | l |}
     \hline
-    IV & Superpoly Equation\\ \hline
-    {0} & k0\\ \hline
+    Initialisation Clocks & IV & Superpoly Equation\\ \hline
+    0 & {0} & $K_0$\\ \hline
+    1 & {1} & $K_1$\\ \hline
+    2 & {2} & $K_2$\cr
+      &	{0} & $K_0$\\ \hline
+    3 & {1} & $K_1$\cr
+	  &	{3} & $K_3$\\ \hline
+    4 & {2} & $K_2$\cr
+	  & {4} & $K_4$\\ \hline
+    5 & {3} & $K_3$\cr
+	  & {1, 2} & $K_3$\cr
+	  &	{0, 1, 2} & $K_0$ \\ \hline
     \end{tabular}
 \end{center}
-\subsubsection{DummyCipher 5 initialisation clocks}
-Up to 5 IV bits (exhaustive)
+\newpage
+\subsection{Grain-128a 0-250 initialisation clocks}
+Performed with the improved Cube Attack, using 3 dimensions.
+Not fully exhaustive, no overlaps were examined
+E.g. $C_I={0,1,2}$ then $C_I={3,4,5}$.
 \begin{center}
     \begin{tabular}{| l | l |}
     \hline
-    IV & Superpoly Equation\\ \hline
-    {3} & k3\\ \hline
-    {1, 2} & k3\\ \hline
-    {0, 1, 2} & k0\\ \hline
+    Initialisation Clocks & No. of Max Terms found\\ \hline
+    0 & 2\\ \hline
+    10 & 2\\ \hline
+    20 & 2\\ \hline
+    30 & 2\\ \hline
+    40 & 4\\ \hline
+    50 & 6\\ \hline
+    60 & 8\\ \hline
+    70 & 10\\ \hline
+    80 & 10\\ \hline
+    90 & 12\\ \hline
+    100 & 6\\ \hline
+    110 & 1\\ \hline
+    120 & 0\\ \hline
+    130 & 0\\ \hline
+    140 & 0\\ \hline
+    150 & 0\\ \hline
+    160 & 0\\ \hline
+    170 & 0\\ \hline
+    180 & 0\\ \hline
+    190 & 0\\ \hline
+    200 & 0\\ \hline
+    210 & 0\\ \hline
+    220 & 0\\ \hline
+    230 & 0\\ \hline
+    240 & 0\\ \hline
+    250 & 0\\ \hline
     \end{tabular}
 \end{center}
-\subsubsection{Grain-128a 0 initialisation clocks}
-%//inteligently estimate the max dimensions/init number we can go up to
-\begin{center}
-    \begin{tabular}{| l | l |}
-    \hline
-    IV & Superpoly Equation\\ \hline
-    {0} & k0\\ \hline
-    \end{tabular}
-\end{center}
+\newpage
+\subsection{Linear Grain-128a 0-250 initialisation clocks}
+Performed with the improved Cube Attack, using 3 dimensions.
+Not fully exhaustive, no overlaps were examined
+E.g. $C_I={0,1,2}$ then $C_I={3,4,5}$.
 
-\subsection{Improved Cube Attack}
+Grain-128a was artificially weakened by removing the non-linear part of the NLFSR's feedback function.
+\begin{center}
+    \begin{tabular}{| l | l |}
+    \hline
+    Initialisation Clocks & No. of Max Terms found\\ \hline
+    0 & 2\\ \hline
+    10 & 2\\ \hline
+    20 & 2\\ \hline
+    30 & 2\\ \hline
+    40 & 4\\ \hline
+    50 & 6\\ \hline
+    60 & 7\\ \hline
+    70 & 11\\ \hline
+    80 & 11\\ \hline
+    90 & 16\\ \hline
+    100 & 8\\ \hline
+    110 & 7\\ \hline
+    120 & 0\\ \hline
+    130 & 2\\ \hline
+    140 & 0\\ \hline
+    150 & 0\\ \hline
+    160 & 0\\ \hline
+    170 & 0\\ \hline
+    180 & 0\\ \hline
+    190 & 0\\ \hline
+    200 & 0\\ \hline
+    210 & 0\\ \hline
+    220 & 0\\ \hline
+    230 & 0\\ \hline
+    240 & 0\\ \hline
+    250 & 0\\ \hline
+    \end{tabular}
+\end{center}
 \end{appendices}
 
 \end{document}
