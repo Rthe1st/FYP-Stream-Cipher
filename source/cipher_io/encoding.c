@@ -14,16 +14,16 @@ void encryptBinary(Grain_state state, FILE* inFp, FILE* outFp){
 void decryptBinary(Grain_state state, FILE* inFp, FILE* outFp){
     char next;
     char decodedCharacter = 0;
-    int bitNum = 0;
+    int bitNum = 7;
     while((next = getc(inFp))!= EOF){
         int nextBin = next-'0';
         decodedCharacter = decodedCharacter|((production_clock(&state)^ nextBin)<<bitNum);
-        if(bitNum == 7){
-            bitNum = 0;
+        if(bitNum == 0){
+            bitNum = 7;
             fputc(decodedCharacter, outFp);
             decodedCharacter = 0;
         }else {
-            bitNum++;
+            bitNum--;
         }
     }
 }

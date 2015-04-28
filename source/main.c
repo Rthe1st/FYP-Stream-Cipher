@@ -6,7 +6,7 @@
 #include "./cipher_io/useful.h"
 #include "./cipher_io/encoding.h"
 
-//expects arguments to be grain key iv streamLength
+//expects arguments to be grain key iv
 //writes plain keystream to file
 void runGrain(int argc, char *argv[]) {
     if (argc < 4) {
