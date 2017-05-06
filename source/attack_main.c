@@ -16,7 +16,8 @@ int main(int argc, char **argv) {
     printf("finding max terms\n");
     Max_term *max_terms;
     Cipher_info * cipher_info;
-    if(argc >= 3 && strcmp(argv[2], "-dummy")){
+    if(argc >= 3 && strcmp(argv[2], "-dummy") == 0){
+        printf("dummy\n");
         cipher_info = dummy_info();
     }else{
         cipher_info = grain_info();
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
     }else{
         if(argc >= 2 && strcmp(argv[1], "-guess") == 0) {
             max_terms = find_max_terms_guessing(50, 2, 1, cipher_info);
-        }else{
+        }else if(argc >= 2 && strcmp(argv[1], "-normal") == 0){
             max_terms = find_max_terms(50, 2, cipher_info);
         }
     }

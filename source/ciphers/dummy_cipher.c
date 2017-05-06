@@ -8,7 +8,7 @@ Cipher_info* dummy_info(){
     Cipher_info* cipher_info = malloc(sizeof(*cipher_info));
     cipher_info->key_size = 5;
     cipher_info->iv_size = 5;
-    cipher_info->init_clocks = 10;
+    cipher_info->init_clocks = 5;
     cipher_info->run_cipher = &dummy_init_and_clock;
     return cipher_info;
 }
